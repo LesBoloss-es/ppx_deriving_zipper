@@ -1,0 +1,13 @@
+## Dune
+/_build
+/*.install
+.merlin
+
+## Emacs
+*~
+*#
+
+## Specific
+/doc
+/bin
+/lib
