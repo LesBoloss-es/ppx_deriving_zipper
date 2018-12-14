@@ -1,0 +1,4 @@
+(executable
+ (name test)
+ (public_name test)
+ (preprocess (pps ppx_deriving_zipper)))
