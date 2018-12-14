@@ -27,7 +27,10 @@ and row_field_occurs ~name = function
 
 let typ_unit = Typ.constr (Lident "unit" |> Location.mknoloc) []
 
-let make_constr name cpt core_type = name, cpt, core_type
+let make_constr name cpt core_types =
+  Type.constructor
+    (Location.mknoloc (name ^ string_of_int cpt))
+    ~args:(Pcstr_tuple core_types)
 
 let rec derive_constr ty_name constr_name cpt prefix acc = function
   | [] -> acc
@@ -53,7 +56,7 @@ let type_decl_str ~options ~path =
         match type_decl.ptype_kind with
         | Ptype_variant constr_decls ->
           (
-            let zipper_constrs =
+            let ancestor_constrs =
               List.map (
                   fun constr_decl -> match constr_decl.pcd_args with
                   | Pcstr_tuple args -> derive_constr type_decl.ptype_name.txt constr_decl.pcd_name.txt args
@@ -61,11 +64,15 @@ let type_decl_str ~options ~path =
                 ) constr_decls
               |> List.concat
             in
-            List.iter (Format.printf "%a@." print_constr) zipper_constrs
+            let ancestor =
+              Type.mk
+                ~kind:(Ptype_variant ancestor_constrs)
+                (Location.mknoloc (type_decl.ptype_name.txt ^ "_ancestor"))
+            in
+            [Str.type_ Asttypes.Recursive [ancestor]]
           )
         | _ -> failwith "not a variant"
-      );
-      Obj.magic ()
+      )
     | _ -> assert false
 
 let () = Ppx_deriving.(register (create ~type_decl_str "zipper" ()))
