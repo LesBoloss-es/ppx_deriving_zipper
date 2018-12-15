@@ -83,21 +83,31 @@ let generate_ancestor type_decl =
 let generate_zipper type_decl =
   let type_name = type_decl.ptype_name.txt in
   [Str.type_ Asttypes.Recursive [
-       Type.mk
-         ~manifest:(Typ.tuple [
-                        Typ.constr (lid type_name) [];
-                        Typ.constr (lid "list") [Typ.constr (lid (type_name ^ "_ancestor")) []]])
-         (Location.mknoloc (type_name ^ "_zipper"))]]
+      Type.mk
+        ~manifest:(Typ.tuple [
+            Typ.constr (lid type_name) [];
+            Typ.constr (lid "list") [Typ.constr (lid (type_name ^ "_ancestor")) []]])
+        (Location.mknoloc (type_name ^ "_zipper"))]]
+
+let generate_to_zipper type_decl =
+  let type_name = type_decl.ptype_name.txt in
+  [Str.value Asttypes.Nonrecursive [{
+       pvb_pat = Pat.var ("zip_" ^ type_name |> Location.mknoloc) ;
+       pvb_expr = [%expr fun t -> t, []] ;
+       pvb_attributes = [] ;
+       pvb_loc = Location.none ;
+     }]]
 
 let type_decl_str ~options ~path =
   ignore options; ignore path; function
-  | [type_decl] ->
-     assert (List.length type_decl.ptype_cstrs = 0);
-     (match type_decl.ptype_manifest with
-      | None -> ()
-      | Some core_type -> print_endline (Ppx_deriving.string_of_core_type core_type));
-     generate_ancestor type_decl
-     @ generate_zipper type_decl
-  | _ -> assert false
+    | [type_decl] ->
+      assert (List.length type_decl.ptype_cstrs = 0);
+      (match type_decl.ptype_manifest with
+       | None -> ()
+       | Some core_type -> print_endline (Ppx_deriving.string_of_core_type core_type));
+      generate_ancestor type_decl
+      @ generate_zipper type_decl
+      @ generate_to_zipper type_decl
+    | _ -> assert false
 
 let () = Ppx_deriving.(register (create ~type_decl_str "zipper" ()))
