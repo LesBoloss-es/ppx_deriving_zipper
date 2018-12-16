@@ -91,12 +91,8 @@ let generate_zipper type_decl =
 
 let generate_to_zipper type_decl =
   let type_name = type_decl.ptype_name.txt in
-  [Str.value Asttypes.Nonrecursive [{
-       pvb_pat = Pat.var ("zip_" ^ type_name |> Location.mknoloc) ;
-       pvb_expr = [%expr fun t -> t, []] ;
-       pvb_attributes = [] ;
-       pvb_loc = Location.none ;
-     }]]
+  let value = Vb.mk (Pat.var ("zip_" ^ type_name |> Location.mknoloc)) [%expr fun t -> t, []] in
+  [Str.value Asttypes.Nonrecursive [value]]
 
 let type_decl_str ~options ~path =
   ignore options; ignore path; function
