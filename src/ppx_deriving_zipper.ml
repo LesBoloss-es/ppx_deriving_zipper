@@ -3,6 +3,7 @@ open Parsetree
 open Longident
 
 let lid id = Location.mknoloc (Longident.Lident id)
+let str s = Location.mknoloc s
 
 let longident_occurs ~name = function
   | Lident name' -> name = name'
@@ -52,31 +53,40 @@ let derive_constr type_name constr_decl =
   | Pcstr_tuple args ->
     derive_tuple type_name args
     |> List.map (fun (i, args) ->
-        let name = guess_name constr_decl.pcd_name.txt i in
-        (name, i, make_constr name args))
+        let original_name = constr_decl.pcd_name.txt in
+        let name = guess_name original_name i in
+        (name, i, original_name, make_constr name args))
 
   | Pcstr_record _ -> failwith "no support for inline records"
+
+let generate_constructors type_decl =
+  let type_name = type_decl.ptype_name.txt in
+  match type_decl.ptype_kind with
+  | Ptype_variant constr_decls -> ExtList.flat_map (derive_constr type_name) constr_decls
+  | Ptype_record _ -> assert false
+  | Ptype_abstract -> assert false
+  | Ptype_open -> assert false
 
 let generate_ancestor type_decl =
   let type_name = type_decl.ptype_name.txt in
   match type_decl.ptype_kind with
   | Ptype_variant constr_decls ->
-     let ancestor_constrs =
-       ExtList.flat_map (derive_constr type_name) constr_decls
-     in
-     let ancestor =
-       Type.mk
-         ~kind:(Ptype_variant (List.map (fun (_, _, x) -> x) ancestor_constrs))
-         (Location.mknoloc (type_name ^ "_ancestor"))
-     in
-     [Str.type_ Asttypes.Recursive [ancestor]]
+    let ancestor_constrs =
+      ExtList.flat_map (derive_constr type_name) constr_decls
+    in
+    let ancestor =
+      Type.mk
+        ~kind:(Ptype_variant (List.map (fun (_, _, _, x) -> x) ancestor_constrs))
+        (Location.mknoloc (type_name ^ "_ancestor"))
+    in
+    [Str.type_ Asttypes.Recursive [ancestor]]
 
   | Ptype_record label_decls ->
-     List.iter
-       (fun label_decl ->
+    List.iter
+      (fun label_decl ->
          print_endline label_decl.pld_name.txt)
-       label_decls;
-     failwith "not a variant"
+      label_decls;
+    failwith "not a variant"
 
   | Ptype_abstract -> assert false
   | Ptype_open -> assert false
@@ -95,16 +105,67 @@ let generate_to_zipper type_decl =
   let value = Vb.mk (Pat.var ("zip_" ^ type_name |> Location.mknoloc)) [%expr fun t -> t, []] in
   [Str.value Asttypes.Nonrecursive [value]]
 
+let generate_go_up type_decl constructors =
+  let type_name = type_decl.ptype_name.txt in
+  let generate_match_case (name, i, original_name, constr_args) =
+    let nb_args = match constr_args.pcd_args with
+      | Pcstr_tuple l -> List.length l
+      | Pcstr_record _ -> assert false
+    in
+    let tuple_pattern =
+      let make_var j =
+        if j <> i then Pat.var (str (Format.sprintf "x%d" j))
+        else [%pat? ()]
+      in
+      List.init nb_args make_var
+    in
+    let pattern = Pat.construct (lid name) (Some (Pat.tuple tuple_pattern)) in
+    let constructor_args =
+      let make_arg j =
+        if j <> i then Exp.ident (lid (Format.sprintf "x%d" j))
+        else [%expr t]
+      in
+      List.init nb_args make_arg
+    in
+    let body = Exp.construct (lid original_name) (Some (Exp.tuple constructor_args)) in
+    {
+      pc_lhs = pattern;
+      pc_guard = None;
+      pc_rhs = body;
+    }
+
+  in
+  let value =
+    let fun_name = type_name ^ "_go_up" in
+    let ancestor_match = Exp.match_
+        [%expr ancestor]
+        (List.map generate_match_case constructors)
+    in
+    Vb.mk (Pat.var (fun_name |> Location.mknoloc))
+      [%expr fun (t, ancestors) -> match ancestors with
+        | [] -> invalid_arg [%e Exp.constant (Const.string fun_name)]
+        | ancestor :: ancestors ->
+          let tree = [%e ancestor_match] in
+          tree, ancestors
+      ]
+
+  in
+  [Str.value Asttypes.Nonrecursive [value]]
+
 let type_decl_str ~options ~path =
-  ignore options; ignore path; function
-    | [type_decl] ->
-      assert (List.length type_decl.ptype_cstrs = 0);
-      (match type_decl.ptype_manifest with
-       | None -> ()
-       | Some core_type -> print_endline (Ppx_deriving.string_of_core_type core_type));
-      generate_ancestor type_decl
-      @ generate_zipper type_decl
-      @ generate_to_zipper type_decl
-    | _ -> assert false
+  ignore options;
+  ignore path;
+  function
+  | [type_decl] ->
+    assert (List.length type_decl.ptype_cstrs = 0);
+    (match type_decl.ptype_manifest with
+     | None -> ()
+     | Some core_type -> print_endline (Ppx_deriving.string_of_core_type core_type));
+    let constructors = generate_constructors type_decl in
+    generate_ancestor type_decl
+    @ generate_zipper type_decl
+    @ generate_to_zipper type_decl
+    @ generate_go_up type_decl constructors
+  | _ -> assert false
 
 let () = Ppx_deriving.(register (create ~type_decl_str "zipper" ()))
