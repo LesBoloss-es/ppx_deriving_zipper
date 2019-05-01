@@ -34,8 +34,15 @@ let make_constr name cpt core_types =
     ~args:(Pcstr_tuple core_types)
 
 let derive_tuple ty_name args =
+  (* Example: for [ty_name * int * ty_name], this function returns
+     [0, unit * int * ty_name;
+      2, ty_name * int * unit] *)
+  (* FIXME: broken on tuples containing tuples (correction: broken on almost
+     everything!) *)
   ExtList.find_all_indices (core_type_occurs ~name:ty_name) args
   |> List.map (fun i -> (i, ExtList.replace_nth args i typ_unit))
+
+(* FIXME: let%test _ = derive_tuple "t" [[%ty: t]; [%ty: int]; [%ty: t]] *)
 
 let derive_constr type_name constr_decl =
   match constr_decl.pcd_args with
