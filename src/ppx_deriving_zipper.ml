@@ -5,6 +5,9 @@ open Longident
 let lid id = Location.mknoloc (Longident.Lident id)
 let str s = Location.mknoloc s
 
+(** default location used by metaquot when building ast nodes with [%expr ...] *)
+let loc = Location.none
+
 let longident_occurs ~name = function
   | Lident name' -> name = name'
   | _ -> assert false
