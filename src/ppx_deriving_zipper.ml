@@ -33,19 +33,9 @@ let make_constr name cpt core_types =
     (Location.mknoloc (name ^ string_of_int cpt))
     ~args:(Pcstr_tuple core_types)
 
-let rec derive_tuple ty_name cpt prefix acc = function
-  | [] -> acc
-  | arg :: args ->
-     let acc =
-       if core_type_occurs ~name:ty_name arg then
-         (cpt, List.rev_append prefix (typ_unit :: args)) :: acc
-       else
-         acc
-     in
-     derive_tuple ty_name (cpt + 1) (arg :: prefix) acc args
-
 let derive_tuple ty_name args =
-  derive_tuple ty_name 0 [] [] args
+  ExtList.find_all_indices (core_type_occurs ~name:ty_name) args
+  |> List.map (fun i -> (i, ExtList.replace_nth args i typ_unit))
 
 let derive_constr type_name constr_decl =
   match constr_decl.pcd_args with

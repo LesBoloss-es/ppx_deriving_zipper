@@ -3,5 +3,4 @@
  (public_name ppx_deriving_zipper)
  (libraries ppx_deriving.api)
  (preprocess (action (run ppxfind -legacy ppx_tools.metaquot --as-pp %{input-file})))
- (modules ppx_deriving_zipper)
  (kind ppx_deriver))
