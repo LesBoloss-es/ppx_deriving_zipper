@@ -30,7 +30,7 @@ and row_field_occurs ~name = function
   | Rtag (_, _, _, ts) -> List.exists (core_type_occurs ~name) ts
   | Rinherit t -> core_type_occurs ~name t
 
-let typ_unit = Typ.constr (lid "unit") []
+let typ_unit = [%type: unit]
 
 let guess_name constr_name i =
   constr_name ^ "_" ^ (string_of_int i)
@@ -50,9 +50,10 @@ let derive_tuple ty_name args =
   |> List.map (fun i -> (i, ExtList.replace_nth args i typ_unit))
 
 let%test _ =
-  derive_tuple "t" [[%type: t]; [%type: int]; [%type: t]]
-  = [(0, [[%type: unit]; [%type: int]; [%type: t]]);
-     (2, [[%type: t]; [%type: int]; [%type: unit]])]
+  let t = [%type: t] in
+  let int = [%type: int] in
+  let unit = [%type: unit] in
+  derive_tuple "t" [t; int; t] = [(0, [unit; int; t]); (2, [t; int; unit])]
 
 let derive_constr type_name constr_decl =
   match constr_decl.pcd_args with
@@ -108,8 +109,8 @@ let generate_zipper type_decl =
 
 let generate_to_zipper type_decl =
   let type_name = type_decl.ptype_name.txt in
-  let value = Vb.mk (Pat.var ("zip_" ^ type_name |> Location.mknoloc)) [%expr fun t -> t, []] in
-  [Str.value Asttypes.Nonrecursive [value]]
+  let fun_name = Pat.var ("zip_" ^ type_name |> Location.mknoloc) in
+  [[%stri let [%p fun_name] = fun t -> t, []]]
 
 let generate_go_up type_decl constructors =
   let type_name = type_decl.ptype_name.txt in
