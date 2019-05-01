@@ -49,7 +49,10 @@ let derive_tuple ty_name args =
   ExtList.find_all_indices (core_type_occurs ~name:ty_name) args
   |> List.map (fun i -> (i, ExtList.replace_nth args i typ_unit))
 
-(* FIXME: let%test _ = derive_tuple "t" [[%ty: t]; [%ty: int]; [%ty: t]] *)
+let%test _ =
+  derive_tuple "t" [[%type: t]; [%type: int]; [%type: t]]
+  = [(0, [[%type: unit]; [%type: int]; [%type: t]]);
+     (2, [[%type: t]; [%type: int]; [%type: unit]])]
 
 let derive_constr type_name constr_decl =
   match constr_decl.pcd_args with

@@ -1,6 +1,7 @@
 (library
  (name ppx_deriving_zipper)
  (public_name ppx_deriving_zipper)
- (preprocess (pps ppxlib.metaquot))
+ (inline_tests)
+ (preprocess (pps ppxlib.metaquot ppx_inline_test))
  (libraries ppx_deriving.api)
  (kind ppx_deriver))
