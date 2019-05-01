@@ -28,9 +28,12 @@ and row_field_occurs ~name = function
 
 let typ_unit = Typ.constr (lid "unit") []
 
-let make_constr name cpt core_types =
+let guess_name constr_name i =
+  constr_name ^ "_" ^ (string_of_int i)
+
+let make_constr name core_types =
   Type.constructor
-    (Location.mknoloc (name ^ string_of_int cpt))
+    (Location.mknoloc name)
     ~args:(Pcstr_tuple core_types)
 
 let derive_tuple ty_name args =
@@ -47,22 +50,23 @@ let derive_tuple ty_name args =
 let derive_constr type_name constr_decl =
   match constr_decl.pcd_args with
   | Pcstr_tuple args ->
-     derive_tuple type_name args
-     |> List.map (fun (i, args) ->
-            make_constr constr_decl.pcd_name.txt i args)
-  | Pcstr_record _ -> assert false
+    derive_tuple type_name args
+    |> List.map (fun (i, args) ->
+        let name = guess_name constr_decl.pcd_name.txt i in
+        (name, i, make_constr name args))
+
+  | Pcstr_record _ -> failwith "no support for inline records"
 
 let generate_ancestor type_decl =
   let type_name = type_decl.ptype_name.txt in
   match type_decl.ptype_kind with
   | Ptype_variant constr_decls ->
      let ancestor_constrs =
-       List.map (derive_constr type_name) constr_decls
-       |> List.concat
+       ExtList.flat_map (derive_constr type_name) constr_decls
      in
      let ancestor =
        Type.mk
-         ~kind:(Ptype_variant ancestor_constrs)
+         ~kind:(Ptype_variant (List.map (fun (_, _, x) -> x) ancestor_constrs))
          (Location.mknoloc (type_name ^ "_ancestor"))
      in
      [Str.type_ Asttypes.Recursive [ancestor]]

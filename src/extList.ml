@@ -18,3 +18,6 @@ let rec replace_nth l i v =
   | _, [] -> failwith "ExtList.replace_nth"
   | 0, _ :: t -> v :: t
   | _, h :: t -> h :: replace_nth t (i-1) v
+
+let flat_map f l =
+  List.map f l |> List.flatten
