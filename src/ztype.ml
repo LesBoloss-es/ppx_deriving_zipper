@@ -16,22 +16,21 @@ type t =
   | Union of (constructor * flat list) list
 
 (** Data constructors *)
-and constructor = {
-  name: string;
-  origin: (string * flat list) option
-}
+and constructor = {name: string; kind: cons_kind}
+
+and cons_kind =
+  | User
+  | FromCons of string * flat list
+  | FromFlat of flat
 
 (** Type declarations: a type name and a definition *)
-type decl = {
-  name: string;
-  def: t;
-}
+type decl = {name: string; def: t}
 
 (** {2 Basic operations on types} *)
 
 let unit = Constr ("unit", [])
 
-let mk_constr name = {name; origin = None}
+let mk_constr name = {name; kind = User}
 let constr_name (c: constructor) = c.name
 
 

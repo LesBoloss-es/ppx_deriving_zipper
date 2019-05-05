@@ -35,9 +35,22 @@ let derive_constructor v (constr, args) =
   List.mapi
     (fun i t ->
        let name = guess_name i original_name in
-       {name; origin = Some (original_name, args)}, t)
+       let kind = FromCons (original_name, args) in
+       ({name; kind}, t))
     variants
 
 (** The derivative of a union type with respect to a type variable *)
 let union v constructors =
   ExtList.flat_map (derive_constructor v) constructors
+
+(** The derivative of a tyep with respect to a type variable *)
+let typ v = function
+  | Union constructors -> Union (union v constructors)
+  | Flat fl ->
+    let ts = flat v fl in
+    let make_constr i t =
+      let name = guess_name i "FromFlat" in
+      let kind = FromFlat fl in
+      ({name; kind}, [t])
+    in
+    Union (List.mapi make_constr ts)
