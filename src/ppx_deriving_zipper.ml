@@ -165,6 +165,15 @@ let type_decl_str ~options ~path =
   function
   | [type_decl] ->
     assert (List.length type_decl.ptype_cstrs = 0);
+    (* DEBUG *)
+    begin
+      let decl = Ztype.decl_of_type_declaration type_decl in
+      Format.printf "DEBUG: %a@." Ztype.pp_decl decl;
+      let decl = Ztype.to_decl decl in
+      let str = Str.type_ Asttypes.Recursive [decl] in
+      Format.printf "DEBUG: %a@." Pprintast.structure [str]
+    end;
+    (* END DEBUG *)
     (match type_decl.ptype_manifest with
      | None -> ()
      | Some core_type -> print_endline (Ppx_deriving.string_of_core_type core_type));
