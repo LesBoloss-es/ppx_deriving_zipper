@@ -130,15 +130,17 @@ let rec flat_to_type flat =
   match flat with
   | Var name -> Typ.var name
   | Constr (name, args) -> Typ.constr (lid name) (List.map flat_to_type args)
+  | Product terms -> Typ.tuple (List.map flat_to_type terms)
   | Hole -> invalid_arg "flat_to_type"
-
-  | Product _ -> unsupported "Product"
 
 let to_decl {name; def} =
   let open Parsetree in
   let open Ast_helper in
   match def with
-  | Flat _ -> unsupported "Flat"
+  | Flat fl ->
+    let manifest = flat_to_type fl in
+    let kind = Ptype_abstract in
+    Type.mk ~kind ~manifest (str name)
   | Union variants ->
     let mk_constructor (c, args) =
       let name = Location.mknoloc (constr_name c) in
@@ -146,4 +148,4 @@ let to_decl {name; def} =
       Type.constructor ~args name
     in
     let kind = Ptype_variant (List.map mk_constructor variants) in
-    Type.mk ~kind (Location.mknoloc name)
+    Type.mk ~kind (str name)
