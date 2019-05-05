@@ -74,39 +74,6 @@ let generate_constructors type_decl =
   | Ptype_abstract -> assert false
   | Ptype_open -> assert false
 
-let generate_ancestor type_decl =
-  let type_name = type_decl.ptype_name.txt in
-  match type_decl.ptype_kind with
-  | Ptype_variant constr_decls ->
-    let ancestor_constrs =
-      ExtList.flat_map (derive_constr type_name) constr_decls
-    in
-    let ancestor =
-      Type.mk
-        ~kind:(Ptype_variant (List.map (fun (_, _, _, x) -> x) ancestor_constrs))
-        (Location.mknoloc (type_name ^ "_ancestor"))
-    in
-    [Str.type_ Asttypes.Recursive [ancestor]]
-
-  | Ptype_record label_decls ->
-    List.iter
-      (fun label_decl ->
-         print_endline label_decl.pld_name.txt)
-      label_decls;
-    failwith "not a variant"
-
-  | Ptype_abstract -> assert false
-  | Ptype_open -> assert false
-
-let generate_zipper type_decl =
-  let type_name = type_decl.ptype_name.txt in
-  [Str.type_ Asttypes.Recursive [
-      Type.mk
-        ~manifest:(Typ.tuple [
-            Typ.constr (lid type_name) [];
-            Typ.constr (lid "list") [Typ.constr (lid (type_name ^ "_ancestor")) []]])
-        (Location.mknoloc (type_name ^ "_zipper"))]]
-
 let generate_to_zipper type_decl =
   let type_name = type_decl.ptype_name.txt in
   let fun_name = Pat.var ("zip_" ^ type_name |> Location.mknoloc) in
@@ -164,22 +131,21 @@ let type_decl_str ~options ~path =
   ignore path;
   function
   | [type_decl] ->
+    (* sanity checks / debugging *)
     assert (List.length type_decl.ptype_cstrs = 0);
-    (* DEBUG *)
-    begin
-      let decl = Ztype.decl_of_type_declaration type_decl in
-      Format.printf "DEBUG: %a@." Ztype.pp_decl decl;
-      let decl = Ztype.to_decl decl in
-      let str = Str.type_ Asttypes.Recursive [decl] in
-      Format.printf "DEBUG: %a@." Pprintast.structure [str]
-    end;
-    (* END DEBUG *)
     (match type_decl.ptype_manifest with
      | None -> ()
      | Some core_type -> print_endline (Ppx_deriving.string_of_core_type core_type));
+
+    let decl = Ztype.decl_of_type_declaration type_decl in
     let constructors = generate_constructors type_decl in
-    generate_ancestor type_decl
-    @ generate_zipper type_decl
+    let ancestor, zipper = Type_generation.all decl in
+    let new_type_decls =
+      let ancestor = Str.type_ Asttypes.Recursive [Ztype.to_decl ancestor] in
+      let zipper = Str.type_ Asttypes.Nonrecursive [Ztype.to_decl zipper] in
+      [ancestor; zipper]
+    in
+    new_type_decls
     @ generate_to_zipper type_decl
     @ generate_go_up type_decl constructors
   | _ -> assert false
