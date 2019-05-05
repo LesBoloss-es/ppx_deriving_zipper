@@ -135,14 +135,11 @@ let type_decl_str ~options ~path =
     let decl = Ztype.decl_of_type_declaration type_decl in
     let constructors = generate_constructors type_decl in
     let ancestor, zipper = Type_generation.all decl in
-    let new_type_decls =
-      let ancestor = Str.type_ Asttypes.Recursive [Ztype.to_decl ancestor] in
-      let zipper = Str.type_ Asttypes.Nonrecursive [Ztype.to_decl zipper] in
-      [ancestor; zipper]
-    in
-    new_type_decls
-    @ [Code_gen.zip zipper]
-    @ generate_go_up type_decl constructors
+    let wrap d = Str.type_ Asttypes.Recursive [Ztype.to_decl d] in
+    wrap ancestor
+    :: wrap zipper
+    :: Code_gen.zip zipper
+    :: generate_go_up type_decl constructors
   | _ -> assert false
 
 let () = Ppx_deriving.(register (create ~type_decl_str "zipper" ()))
