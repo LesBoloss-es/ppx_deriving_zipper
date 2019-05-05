@@ -4,8 +4,9 @@ open Ztype
 
 (** {2 Differentiation of flat types} *)
 
-let constr _ name = function
-  | [] -> [Constr (name, [])]
+let constr v name = function
+  | [] when v = name -> [Hole]
+  | [] -> []
   | _ -> assert false
 
 (** The derivative of a product with respect to a type variable *)
@@ -25,6 +26,11 @@ and flat v = function
   | Product terms -> List.map (fun x -> Product x) (product v terms)
   | Constr (name, args) -> constr v name args
   | Hole -> invalid_arg "flat"
+
+let%test _ =
+  let t = Constr ("t", []) in
+  let int = Constr ("int", []) in
+  product "t" [t; int; t] = [[Hole; int; t]; [t; int; Hole]]
 
 
 (** {2 Differentiation of union types} *)
