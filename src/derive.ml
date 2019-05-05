@@ -4,6 +4,10 @@ open Ztype
 
 (** {2 Differentiation of flat types} *)
 
+let constr _ name = function
+  | [] -> [Constr (name, [])]
+  | _ -> assert false
+
 (** The derivative of a product with respect to a type variable *)
 let rec product v terms =
   (* XXX. not efficient but readable *)
@@ -19,7 +23,7 @@ and flat v = function
   | Var v' when v = v' -> [Hole]
   | Var _ -> []
   | Product terms -> List.map (fun x -> Product x) (product v terms)
-  | Constr _ -> assert false (* TODO *)
+  | Constr (name, args) -> constr v name args
   | Hole -> invalid_arg "flat"
 
 
