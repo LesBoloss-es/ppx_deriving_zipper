@@ -18,7 +18,7 @@ type t =
 (** Data constructors *)
 and constructor = {
   name: string;
-  origin: (string * float) option
+  origin: (string * flat list) option
 }
 
 (** Type declarations: a type name and a definition *)
