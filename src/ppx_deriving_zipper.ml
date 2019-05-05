@@ -74,11 +74,6 @@ let generate_constructors type_decl =
   | Ptype_abstract -> assert false
   | Ptype_open -> assert false
 
-let generate_to_zipper type_decl =
-  let type_name = type_decl.ptype_name.txt in
-  let fun_name = Pat.var ("zip_" ^ type_name |> Location.mknoloc) in
-  [[%stri let [%p fun_name] = fun t -> t, []]]
-
 let generate_go_up type_decl constructors =
   let type_name = type_decl.ptype_name.txt in
   let generate_match_case (name, i, original_name, constr_args) =
@@ -146,7 +141,7 @@ let type_decl_str ~options ~path =
       [ancestor; zipper]
     in
     new_type_decls
-    @ generate_to_zipper type_decl
+    @ [Code_gen.zip zipper]
     @ generate_go_up type_decl constructors
   | _ -> assert false
 
