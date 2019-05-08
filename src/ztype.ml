@@ -24,7 +24,7 @@ and cons_kind =
   | FromFlat of flat
 
 (** Type declarations: a type name and a definition *)
-type decl = {name: string; def: t}
+type decl = {vars: string list; name: string; def: t}
 
 (** {2 Basic operations on types} *)
 
@@ -69,8 +69,16 @@ let pp fmt = function
     let pp_sep fmt () = Format.fprintf fmt " | " in
     Format.pp_print_list ~pp_sep pp_variant fmt variants
 
-let pp_decl fmt {name; def} =
-  Format.fprintf fmt "type %s = %a" name pp def
+let pp_vars fmt vars =
+  let pp_sep fmt () = Format.fprintf fmt ", " in
+  let pp_var fmt = Format.fprintf fmt "'%s" in
+  match vars with
+  | [] -> ()
+  | [v] -> pp_var fmt v
+  | _ -> Format.pp_print_list ~pp_sep pp_var fmt vars
+
+let pp_decl fmt {vars; name; def} =
+  Format.fprintf fmt "type %a %s = %a" pp_vars vars name pp def
 
 (** {2 Conversion} *)
 
@@ -115,7 +123,8 @@ let decl_of_type_declaration td =
   match td.ptype_kind with
   | Ptype_variant constr_decls ->
     let variants = List.map variant_of_constr_decl constr_decls in
-    {name; def = Union variants}
+    (* XXX. where are the type variables? *)
+    {vars = []; name; def = Union variants}
   | Ptype_record _ -> unsupported "Ptype_record"
   | Ptype_abstract -> unsupported "Ptype_abstract"
   | Ptype_open -> unsupported "Ptype_open"
@@ -133,14 +142,19 @@ let rec flat_to_type flat =
   | Product terms -> Typ.tuple (List.map flat_to_type terms)
   | Hole -> invalid_arg "flat_to_type"
 
-let to_decl {name; def} =
+let variables_to_params =
+  let open Ast_helper in
+  List.map (fun v -> Typ.var v, Asttypes.Invariant)
+
+let to_decl {vars; name; def} =
   let open Parsetree in
   let open Ast_helper in
+  let params = variables_to_params vars in
   match def with
   | Flat fl ->
     let manifest = flat_to_type fl in
     let kind = Ptype_abstract in
-    Type.mk ~kind ~manifest (str name)
+    Type.mk ~params ~kind ~manifest (str name)
   | Union variants ->
     let mk_constructor (c, args) =
       let name = Location.mknoloc (constr_name c) in
@@ -148,4 +162,4 @@ let to_decl {name; def} =
       Type.constructor ~args name
     in
     let kind = Ptype_variant (List.map mk_constructor variants) in
-    Type.mk ~kind (str name)
+    Type.mk ~params ~kind (str name)

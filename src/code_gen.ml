@@ -9,8 +9,8 @@ let zip typ =
   let loc = Location.none in
   [%stri let [%p fun_name] = fun t -> t, []]
 
-let go_up typ ancestor =
-  let constructors = match ancestor.def with
+let go_up typ derivative =
+  let constructors = match derivative.def with
     | Union constructors -> constructors
     | Flat _ -> assert false
   in
@@ -46,13 +46,13 @@ let go_up typ ancestor =
   let value =
     let fun_name = "go_up_" ^ typ.name in
     let ancestor_match = Exp.match_
-        [%expr ancestor]
+        [%expr derivative]
         (List.map generate_match_case constructors)
     in
     Vb.mk (Pat.var (fun_name |> Location.mknoloc))
       [%expr fun (t, ancestors) -> match ancestors with
         | [] -> invalid_arg [%e Exp.constant (Const.string fun_name)]
-        | ancestor :: ancestors ->
+        | derivative :: ancestors ->
           let tree = [%e ancestor_match] in
           tree, ancestors
       ]
