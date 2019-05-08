@@ -15,7 +15,7 @@ let type_decl_str ~options ~path =
      | Some core_type -> print_endline (Ppx_deriving.string_of_core_type core_type));
 
     let decl = Ztype.decl_of_type_declaration type_decl in
-    let ancestor, zipper = Type_generation.all decl in
+    let ancestor, zipper = Type_gen.all decl in
     wrap ancestor
     :: wrap zipper
     :: Code_gen.zip decl
