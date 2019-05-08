@@ -16,11 +16,13 @@ let type_decl_str ~options ~path =
 
     let decl = Ztype.decl_of_type_declaration type_decl in
     let derivative, ancestor, zipper = Type_gen.all decl in
-    wrap_decl derivative
-    :: wrap_decl ancestor
-    :: wrap_decl zipper
-    :: Code_gen.zip decl
-    :: Code_gen.go_up decl derivative
+    [
+      wrap_decl derivative;
+      wrap_decl ancestor;
+      wrap_decl zipper;
+      Code_gen.zip decl;
+      Code_gen.go_up decl derivative
+    ]
   | _ -> assert false
 
 let () = Ppx_deriving.(register (create ~type_decl_str "zipper" ()))

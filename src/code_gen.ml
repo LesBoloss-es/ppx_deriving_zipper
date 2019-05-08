@@ -58,4 +58,4 @@ let go_up typ derivative =
       ]
 
   in
-  [Str.value Asttypes.Nonrecursive [value]]
+  Str.value Asttypes.Nonrecursive [value]
