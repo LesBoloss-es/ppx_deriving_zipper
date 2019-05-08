@@ -120,11 +120,15 @@ let variant_of_constr_decl cd =
 let decl_of_type_declaration td =
   let open Parsetree in
   let name = td.ptype_name.txt in
+  let as_var ct = match ct.ptyp_desc with
+    | Ptyp_var v -> v
+    | _ -> invalid_arg "as_var"
+  in
   match td.ptype_kind with
   | Ptype_variant constr_decls ->
     let variants = List.map variant_of_constr_decl constr_decls in
-    (* XXX. where are the type variables? *)
-    {vars = []; name; def = Union variants}
+    let vars = List.map (fun (v, _) -> as_var v) td.ptype_params in
+    {vars; name; def = Union variants}
   | Ptype_record _ -> unsupported "Ptype_record"
   | Ptype_abstract -> unsupported "Ptype_abstract"
   | Ptype_open -> unsupported "Ptype_open"
