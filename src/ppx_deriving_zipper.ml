@@ -28,7 +28,8 @@ let type_decl_str ~options ~path =
       wrap_decl ~is_derivative:false zipper;
       wrap_decl ~is_derivative:false view;
       Code_gen.zip decl;
-      Code_gen.go_up decl derivative
+      Code_gen.go_up decl derivative;
+      Code_gen.view decl;
     ]
   | _ -> assert false
 

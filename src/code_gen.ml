@@ -9,39 +9,33 @@ let zip typ =
   let loc = Location.none in
   [%stri let [%p fun_name] = fun t -> t, []]
 
-let map_with_name f =
-  List.mapi
-    (fun j arg -> f (Format.sprintf "x%d" j) arg)
+let var_name_from_pos = Format.sprintf "x%d"
+let exp_var_from_pos i = Exp.ident (lid (var_name_from_pos i))
+let pat_var_from_pos i = Pat.var (str (var_name_from_pos i))
+
+let make_constructor_pattern constr_name constr_args mk_arg =
+  let args = match constr_args with
+    | [] -> None
+    | _ -> Some (Pat.tuple (List.mapi mk_arg constr_args)) in
+  Pat.construct (lid constr_name) args
+
+let make_constructor_expr constr_name constr_args mk_arg =
+  let args = match constr_args with
+    | [] -> None
+    | _ -> Some (Exp.tuple (List.mapi mk_arg constr_args)) in
+  Exp.construct (lid constr_name) args
 
 let go_up typ derivative =
   let generate_match_case (cons, args) =
-    let name = constr_name cons in
-    let orig_name = match cons.kind with
-      | FromCons (orig_name, _) -> orig_name
-      | _ -> assert false
+    let pattern =
+      let make_arg pos arg = if arg = Hole then [%pat? ()] else pat_var_from_pos pos in
+      make_constructor_pattern (constr_name cons) args make_arg
     in
-    let tuple_pattern =
-      map_with_name
-        (fun var_name arg ->
-           if arg = Hole then [%pat? ()]
-           else Pat.var (str var_name))
-        args
+    let body =
+      let make_arg pos arg = if arg = Hole then [%expr t] else exp_var_from_pos pos in
+      make_constructor_expr (original_constructor_name cons) args make_arg
     in
-    let pattern = Pat.construct (lid name) (Some (Pat.tuple tuple_pattern)) in
-    let constructor_args =
-      map_with_name
-        (fun var_name arg ->
-           if arg = Hole then [%expr t]
-           else Exp.ident (lid var_name))
-        args
-    in
-    let body = Exp.construct (lid orig_name) (Some (Exp.tuple constructor_args)) in
-    {
-      pc_lhs = pattern;
-      pc_guard = None;
-      pc_rhs = body;
-    }
-
+    Exp.case pattern body
   in
   let value =
     let fun_name = "go_up_" ^ typ.name in
@@ -54,8 +48,51 @@ let go_up typ derivative =
         | [] -> invalid_arg [%e Exp.constant (Const.string fun_name)]
         | derivative :: ancestors ->
           let tree = [%e ancestor_match] in
-          tree, ancestors
-      ]
-
+          tree, ancestors]
   in
   Str.value Asttypes.Nonrecursive [value]
+
+let view typ =
+  let fun_name = Pat.var ("view_" ^ typ.name |> Location.mknoloc) in
+  let loc = Location.none in
+  let match_cases: case list =
+    List.map
+      (fun (constr, constr_args) ->
+         let constr_name = constr_name constr in
+         let pattern =
+           make_constructor_pattern
+             constr_name
+             constr_args
+             (fun pos _ -> pat_var_from_pos pos)
+         in
+         let body =
+           let ugly_index = ref (-1) in
+           make_constructor_expr
+             (Type_gen.guess_view_constr_name constr_name)
+             constr_args
+             (fun pos arg ->
+                match arg with
+                | Constr (name, _) when typ.name = name ->
+                  incr ugly_index;
+                  let child = exp_var_from_pos pos in
+                  let new_ancestor =
+                    make_constructor_expr
+                      (Derive.guess_name !ugly_index constr_name)
+                      constr_args
+                      (fun pos' _ ->
+                         if pos = pos' then [%expr ()]
+                         else exp_var_from_pos pos')
+                  in
+                  [%expr fun () -> ([%e child], [%e new_ancestor] :: ancestors)]
+                | _ -> exp_var_from_pos pos )
+         in
+         Exp.case pattern body
+      )
+      (variants typ.def)
+  in
+  let big_match = Exp.match_ [%expr tree] match_cases in
+  (* FIXME: empty list? *)
+  let zipper_name = Typ.constr (lid (Type_gen.guess_zipper_name typ.name)) [] in
+  (* FIXME: empty list? *)
+  let view_name = Typ.constr (lid (Type_gen.guess_view_name typ.name)) [] in
+  [%stri let [%p fun_name] : [%t zipper_name] -> [%t view_name] = fun (tree, ancestors) -> [%e big_match]]

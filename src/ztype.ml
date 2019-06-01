@@ -29,6 +29,10 @@ let variants = function
   | Flat _ -> invalid_arg "variants"
   | Union variants -> variants
 
+let original_constructor_name {kind; _} = match kind with
+  | FromCons (name, _) -> name
+  | _ -> invalid_arg "original_constructor_name"
+
 (** Type declarations: a type name and a definition *)
 type decl = {vars: string list; name: string; def: t}
 

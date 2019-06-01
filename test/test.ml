@@ -30,12 +30,12 @@ let a =
 
 
 let () =
-  let rec go_bot_left z = match tree_view z with
-    | Nil -> z
-    | UNode (f, child) ->
+  let rec go_bot_left z = match view_tree z with
+    | ZNil -> z
+    | ZUNode (f, child) ->
       Format.printf "%F@." f;
       go_bot_left (child ())
-    | BNode (n, left, _) ->
+    | ZBNode (n, left, _) ->
       Format.printf "%d@." n;
       go_bot_left (left ())
   in

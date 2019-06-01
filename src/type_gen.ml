@@ -22,6 +22,7 @@ let guess_derivative_name name = name ^ "_diff"
 let guess_ancestor_name name = name ^ "_ancestor"
 let guess_zipper_name name = name ^ "_zipper"
 let guess_view_name name = name ^ "_view"
+let guess_view_constr_name name = "Z" ^ name
 
 (** {2 Type generation} *)
 
@@ -44,7 +45,19 @@ let zipper {name; vars; _} =
   {vars; name = guess_zipper_name name; def = Flat typ}
 
 let view {name; vars; def} =
-  let subst = Constr ("thunk", [Constr(name, List.map var_ vars)]) in
+  let def = match def with
+    | Flat _ -> def
+    | Union variants ->
+      let variants = List.map
+        (fun (constr, args) ->
+           let name = guess_view_constr_name (constr_name constr) in
+           let constr = {name; kind = FromCons (constr.name, args)} in
+           (constr, args))
+        variants
+      in
+      Union variants
+  in
+  let subst = Constr ("thunk", [Constr (guess_zipper_name name, List.map var_ vars)]) in
   let def = Ztype.replace_constr name subst def in
   let name = guess_view_name name in
   {name; vars; def}
