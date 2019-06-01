@@ -9,6 +9,10 @@ let zip typ =
   let loc = Location.none in
   [%stri let [%p fun_name] = fun t -> t, []]
 
+let map_with_name f =
+  List.mapi
+    (fun j arg -> f (Format.sprintf "x%d" j) arg)
+
 let go_up typ derivative =
   let generate_match_case (cons, args) =
     let name = constr_name cons in
@@ -17,18 +21,18 @@ let go_up typ derivative =
       | _ -> assert false
     in
     let tuple_pattern =
-      List.mapi
-        (fun j arg ->
-           if arg <> Hole then Pat.var (str (Format.sprintf "x%d" j))
-           else [%pat? ()])
+      map_with_name
+        (fun var_name arg ->
+           if arg = Hole then [%pat? ()]
+           else Pat.var (str var_name))
         args
     in
     let pattern = Pat.construct (lid name) (Some (Pat.tuple tuple_pattern)) in
     let constructor_args =
-      List.mapi
-        (fun j arg ->
-           if arg <> Hole then Exp.ident (lid (Format.sprintf "x%d" j))
-           else [%expr t])
+      map_with_name
+        (fun var_name arg ->
+           if arg = Hole then [%expr t]
+           else Exp.ident (lid var_name))
         args
     in
     let body = Exp.construct (lid orig_name) (Some (Exp.tuple constructor_args)) in
