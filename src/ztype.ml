@@ -59,7 +59,7 @@ let pp_constructor fmt c =
   Format.pp_print_string fmt (constr_name c)
 
 let rec pp_flat fmt = function
-  | Var name -> Format.pp_print_string fmt name
+  | Var name -> Format.fprintf fmt "'%s" name
   | Product typs ->
     let pp_sep fmt () = Format.fprintf fmt " * " in
     Format.fprintf fmt "(%a)" (Format.pp_print_list ~pp_sep pp_flat) typs
@@ -85,7 +85,7 @@ let pp fmt = function
           pp_constructor constructor
           (Format.pp_print_list ~pp_sep pp_flat) args
     in
-    let pp_sep fmt () = Format.fprintf fmt " | " in
+    let pp_sep fmt () = Format.fprintf fmt "@\n| " in
     Format.pp_print_list ~pp_sep pp_variant fmt variants
 
 let pp_vars fmt vars =
@@ -97,7 +97,7 @@ let pp_vars fmt vars =
   | _ -> Format.pp_print_list ~pp_sep pp_var fmt vars
 
 let pp_decl fmt {vars; name; def} =
-  Format.fprintf fmt "type %a %s = %a" pp_vars vars name pp def
+  Format.fprintf fmt "@[<2>type %a %s =@\n%a@]" pp_vars vars name pp def
 
 (** {2 Conversion} *)
 
