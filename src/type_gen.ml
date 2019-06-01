@@ -21,6 +21,7 @@ let subst t = function
 let guess_derivative_name name = name ^ "_diff"
 let guess_ancestor_name name = name ^ "_ancestor"
 let guess_zipper_name name = name ^ "_zipper"
+let guess_view_name name = name ^ "_view"
 
 (** {2 Type generation} *)
 
@@ -42,6 +43,12 @@ let zipper {name; vars; _} =
   let ancestors = Constr ("list", [Constr (guess_ancestor_name name, args)]) in
   let typ = Product [Constr (name, args); ancestors] in
   {vars; name = guess_zipper_name name; def = Flat typ}
+
+let view {name; vars; def} =
+  let subst = Constr ("thunk", [Constr(name, List.map var_ vars)]) in
+  let def = Ztype.replace_constr name subst def in
+  let name = guess_view_name name in
+  {name; vars; def}
 
 let all decl =
   let derivative = derivative decl in

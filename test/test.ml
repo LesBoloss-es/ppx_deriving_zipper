@@ -28,8 +28,18 @@ let a =
     )
   )
 
-let za = zip_tree a
 
-let () = assert (za = (a, []))
+let () =
+  let rec go_bot_left z = match tree_view z with
+    | Nil -> z
+    | UNode (f, child) ->
+      Format.printf "%F@." f;
+      go_bot_left (child ())
+    | BNode (n, left, _) ->
+      Format.printf "%d@." n;
+      go_bot_left (left ())
+  in
+  let z = go_bot_left (zip_tree a) in
+  ignore z
 
 let () = print_endline "test.ml OK"

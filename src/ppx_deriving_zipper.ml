@@ -16,10 +16,17 @@ let type_decl_str ~options ~path =
 
     let decl = Ztype.decl_of_type_declaration type_decl in
     let derivative, ancestor, zipper = Type_gen.all decl in
+    let view = Type_gen.view decl in
+    let thunk =
+      let loc = Location.none in
+      [%stri type 'a thunk = unit -> 'a]
+    in
     [
+      thunk;
       wrap_decl derivative;
       wrap_decl ancestor;
       wrap_decl zipper;
+      wrap_decl view;
       Code_gen.zip decl;
       Code_gen.go_up decl derivative
     ]

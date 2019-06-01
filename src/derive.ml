@@ -19,6 +19,7 @@ let rec product v terms =
   List.init (List.length terms) derive_i
   |> List.flatten
 
+(* FIXME: [v] peut être une variable ou un constructeur *)
 (** The derivative of a flat type with respect to a type variable *)
 and flat v = function
   | Var v' when v = v' -> [Hole]

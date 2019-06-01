@@ -9,6 +9,8 @@ type flat =
   | Hole
   (** a special symbol used when computing derivatives *)
 
+let var_ v = Var v
+
 (** A general type is either a flat type or a union type.
     Defined this way, unions cannot be nested inside other types *)
 type t =
@@ -27,6 +29,23 @@ and cons_kind =
 type decl = {vars: string list; name: string; def: t}
 
 (** {2 Basic operations on types} *)
+
+let rec replace_constr_flat name value = function
+  | Var v -> Var v
+  | Product typs -> Product (List.map (replace_constr_flat name value) typs)
+  | Constr (name', args) ->
+    if name = name' then begin
+      assert (args = []); (* FIXME *)
+      value
+    end else
+    Constr (name', List.map (replace_constr_flat name value) args)
+  | Hole -> Hole
+
+let replace_constr name value = function
+  | Flat t -> Flat (replace_constr_flat name value t)
+  | Union variants ->
+    let variants = List.map (fun (c, args) -> (c, List.map (replace_constr_flat name value) args)) variants in
+    Union variants
 
 let unit = Constr ("unit", [])
 
