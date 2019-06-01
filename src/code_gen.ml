@@ -96,3 +96,12 @@ let view typ =
   (* FIXME: empty list? *)
   let view_name = Typ.constr (lid (Type_gen.guess_view_name typ.name)) [] in
   [%stri let [%p fun_name] : [%t zipper_name] -> [%t view_name] = fun (tree, ancestors) -> [%e big_match]]
+
+let unzip typ =
+  let fun_pat = Pat.var ("unzip_" ^ typ.name |> Location.mknoloc) in
+  let fun_expr = Exp.ident ("unzip_" ^ typ.name |> lid) in
+  let go_up_name = Exp.ident ("go_up_" ^ typ.name |> lid) in
+  [%stri let rec [%p fun_pat] = fun zipper ->
+    match snd zipper with
+    | [] -> fst zipper
+    | _ -> [%e fun_expr] ([%e go_up_name] zipper)]
