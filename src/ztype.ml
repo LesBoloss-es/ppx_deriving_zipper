@@ -25,6 +25,10 @@ and cons_kind =
   | FromCons of string * flat list
   | FromFlat of flat
 
+let variants = function
+  | Flat _ -> invalid_arg "variants"
+  | Union variants -> variants
+
 (** Type declarations: a type name and a definition *)
 type decl = {vars: string list; name: string; def: t}
 

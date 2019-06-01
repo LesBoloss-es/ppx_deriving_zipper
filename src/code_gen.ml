@@ -10,10 +10,6 @@ let zip typ =
   [%stri let [%p fun_name] = fun t -> t, []]
 
 let go_up typ derivative =
-  let constructors = match derivative.def with
-    | Union constructors -> constructors
-    | Flat _ -> assert false
-  in
   let generate_match_case (cons, args) =
     let name = constr_name cons in
     let orig_name = match cons.kind with
@@ -47,7 +43,7 @@ let go_up typ derivative =
     let fun_name = "go_up_" ^ typ.name in
     let ancestor_match = Exp.match_
         [%expr derivative]
-        (List.map generate_match_case constructors)
+        (List.map generate_match_case (variants derivative.def))
     in
     Vb.mk (Pat.var (fun_name |> Location.mknoloc))
       [%expr fun (t, ancestors) -> match ancestors with
