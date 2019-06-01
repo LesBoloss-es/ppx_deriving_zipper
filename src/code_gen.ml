@@ -19,7 +19,7 @@ let go_up typ derivative =
     let tuple_pattern =
       List.mapi
         (fun j arg ->
-           if arg <> unit then Pat.var (str (Format.sprintf "x%d" j))
+           if arg <> Hole then Pat.var (str (Format.sprintf "x%d" j))
            else [%pat? ()])
         args
     in
@@ -27,7 +27,7 @@ let go_up typ derivative =
     let constructor_args =
       List.mapi
         (fun j arg ->
-           if arg <> unit then Exp.ident (lid (Format.sprintf "x%d" j))
+           if arg <> Hole then Exp.ident (lid (Format.sprintf "x%d" j))
            else [%expr t])
         args
     in

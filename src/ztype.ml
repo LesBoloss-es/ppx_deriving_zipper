@@ -161,31 +161,35 @@ let decl_of_type_declaration td =
 let str = Location.mknoloc
 let lid s = Longident.parse s |> Location.mknoloc
 
-let rec flat_to_type flat =
+let rec flat_to_type ~is_derivative flat =
   let open Ast_helper in
   match flat with
   | Var name -> Typ.var name
-  | Constr (name, args) -> Typ.constr (lid name) (List.map flat_to_type args)
-  | Product terms -> Typ.tuple (List.map flat_to_type terms)
-  | Hole -> invalid_arg "flat_to_type"
+  | Constr (name, args) -> Typ.constr (lid name) (List.map (flat_to_type ~is_derivative) args)
+  | Product terms -> Typ.tuple (List.map (flat_to_type ~is_derivative) terms)
+  | Hole ->
+    if is_derivative then Typ.var "hole"
+    else invalid_arg "flat_to_type"
 
 let variables_to_params =
   let open Ast_helper in
   List.map (fun v -> Typ.var v, Asttypes.Invariant)
 
-let to_decl {vars; name; def} =
+let to_decl ~is_derivative {vars; name; def} =
   let open Parsetree in
   let open Ast_helper in
-  let params = variables_to_params vars in
+  let params =
+    variables_to_params (if is_derivative then "hole" :: vars else vars)
+  in
   match def with
   | Flat fl ->
-    let manifest = flat_to_type fl in
+    let manifest = flat_to_type ~is_derivative fl in
     let kind = Ptype_abstract in
     Type.mk ~params ~kind ~manifest (str name)
   | Union variants ->
     let mk_constructor (c, args) =
       let name = Location.mknoloc (constr_name c) in
-      let args = Pcstr_tuple (List.map flat_to_type args) in
+      let args = Pcstr_tuple (List.map (flat_to_type ~is_derivative) args) in
       Type.constructor ~args name
     in
     let kind = Ptype_variant (List.map mk_constructor variants) in

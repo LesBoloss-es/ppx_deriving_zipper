@@ -26,11 +26,10 @@ let guess_view_name name = name ^ "_view"
 (** {2 Type generation} *)
 
 let derivative {vars; name; def} =
-  let d = Derive.typ name def in
   {
     name = guess_derivative_name name;
-    vars = "hole" :: vars;
-    def = subst (Var "hole") d
+    def = Derive.typ name def;
+    vars;
   }
 
 let ancestor {vars; name; _} =

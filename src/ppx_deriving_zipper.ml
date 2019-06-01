@@ -1,7 +1,7 @@
 open Ast_helper
 open Parsetree
 
-let wrap_decl d = Str.type_ Asttypes.Recursive [Ztype.to_decl d]
+let wrap_decl ~is_derivative d = Str.type_ Asttypes.Recursive [Ztype.to_decl ~is_derivative d]
 
 let type_decl_str ~options ~path =
   ignore options;
@@ -23,10 +23,10 @@ let type_decl_str ~options ~path =
     in
     [
       thunk;
-      wrap_decl derivative;
-      wrap_decl ancestor;
-      wrap_decl zipper;
-      wrap_decl view;
+      wrap_decl ~is_derivative:true derivative;
+      wrap_decl ~is_derivative:false ancestor;
+      wrap_decl ~is_derivative:false zipper;
+      wrap_decl ~is_derivative:false view;
       Code_gen.zip decl;
       Code_gen.go_up decl derivative
     ]
