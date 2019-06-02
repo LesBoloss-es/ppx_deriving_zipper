@@ -4,64 +4,62 @@ open Ztype
 
 (** {2 Differentiation of flat types} *)
 
-let constr v name = function
-  | [] when v = name -> [Hole]
-  | [] -> []
-  | _ -> assert false
+let occurrences_of_name name =
+  Position.collect
+    (function
+      | Constr (name', _) when name = name' -> true
+      | _ -> false)
 
-(** The derivative of a product with respect to a type variable *)
-let rec product v terms =
-  (* XXX. not efficient but readable *)
-  let derive_i i =
-    flat v (List.nth terms i)
-    |> List.map (fun t -> ExtList.replace_nth terms i t)
-  in
-  List.init (List.length terms) derive_i
-  |> List.flatten
+(** Derive a flat type *)
+let flat v flat =
+  List.map
+    (fun path -> path, Position.replace_at path Hole flat)
+    (occurrences_of_name v flat)
 
-(* FIXME: [v] peut être une variable ou un constructeur *)
-(** The derivative of a flat type with respect to a type variable *)
-and flat v = function
-  | Var v' when v = v' -> [Hole]
-  | Var _ -> []
-  | Product terms -> List.map (fun x -> Product x) (product v terms)
-  | Constr (name, args) -> constr v name args
-  | Hole -> invalid_arg "flat"
+(** FIXME: I'm cheum *)
+let product v flats =
+  flat v (Product flats)
+  |> List.map (fun (pos, typ) -> pos, destruct_product typ)
 
 let%test _ =
   let t = Constr ("t", []) in
   let int = Constr ("int", []) in
-  product "t" [t; int; t] = [[Hole; int; t]; [t; int; Hole]]
+  let flats = [Product [int; t]; t] in
+  let v = "t" in
+  let actual = product v flats  |> List.map snd |> List.sort compare in
+  let expected = List.sort compare [[Product [int; Hole]; t]; [Product [int; t]; Hole]] in
+  actual = expected
 
 
 (** {2 Differentiation of union types} *)
 
-let guess_name i name = Format.sprintf "%s_%i" name i
+(* FIXME *)
+let guess_name pos name = Format.sprintf "%s_%i" name (List.hd pos)
 
 (** The derivative of a single constructor of a union type with respect to a
     type variable *)
-let derive_constructor v (constr, args) =
+let constructor v (constr, args) =
   let original_name = constr_name constr in
   let variants = product v args in
-  List.mapi
-    (fun i t ->
-       let name = guess_name i original_name in
+  List.map
+    (fun (pos, typ) ->
+       let name = guess_name pos original_name in
        let kind = FromCons (original_name, args) in
-       ({name; kind}, t))
+       ({name; kind}, typ))
     variants
 
 (** The derivative of a union type with respect to a type variable *)
 let union v constructors =
-  ExtList.flat_map (derive_constructor v) constructors
+  ExtList.flat_map (constructor v) constructors
 
-(** The derivative of a tyep with respect to a type variable *)
+(** The derivative of a type with respect to a type variable *)
 let typ v = function
   | Union constructors -> Union (union v constructors)
   | Flat fl ->
     let ts = flat v fl in
-    let make_constr i t =
-      let name = guess_name i "FromFlat" in
+    let make_constr (pos, typ) =
+      let name = guess_name pos "FromFlat" in
       let kind = FromFlat fl in
-      ({name; kind}, [t])
+      ({name; kind}, [typ])
     in
-    Union (List.mapi make_constr ts)
+    Union (List.map make_constr ts)

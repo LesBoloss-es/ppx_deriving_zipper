@@ -13,20 +13,53 @@ let guess_view_name name = "view_" ^ name
 
 (** {2} Helpers *)
 
-let var_name_from_pos = Format.sprintf "x%d"
-let exp_var_from_pos i = Exp.ident (lid (var_name_from_pos i))
-let pat_var_from_pos i = Pat.var (str (var_name_from_pos i))
+let var_name_from_pos =
+  let pp_int_list =
+    Format.pp_print_list
+      ~pp_sep:(fun fmt () -> Format.fprintf fmt "_")
+      Format.pp_print_int
+  in
+  Format.asprintf "x_%a" pp_int_list
 
-let make_constructor_pattern constr_name constr_args mk_arg =
+let exp_var_from_pos pos = Exp.ident (lid (var_name_from_pos pos))
+let pat_var_from_pos pos = Pat.var (str (var_name_from_pos pos))
+
+let make_constructor_pattern
+    ?(on_hole = fun pos -> pat_var_from_pos pos)
+    ?(on_constr = fun pos _ _ -> pat_var_from_pos pos)
+    ?(on_var = fun pos _ -> pat_var_from_pos pos)
+    constr_name constr_args =
   let args = match constr_args with
     | [] -> None
-    | _ -> Some (Pat.tuple (List.mapi mk_arg constr_args)) in
+    | _ ->
+      let pattern = Position.map_pos
+          ~on_product:(fun _ terms -> Pat.tuple terms)
+          ~on_var
+          ~on_constr
+          ~on_hole
+          (Product constr_args)
+      in
+      Some pattern
+  in
   Pat.construct (lid constr_name) args
 
-let make_constructor_expr constr_name constr_args mk_arg =
+let make_constructor_expr
+    ?(on_hole = fun pos -> exp_var_from_pos pos)
+    ?(on_constr = fun pos _ _ -> exp_var_from_pos pos)
+    ?(on_var = fun pos _ -> exp_var_from_pos pos)
+    constr_name constr_args =
   let args = match constr_args with
     | [] -> None
-    | _ -> Some (Exp.tuple (List.mapi mk_arg constr_args)) in
+    | _ ->
+      let expr = Position.map_pos
+          ~on_product:(fun _ terms -> Exp.tuple terms)
+          ~on_var
+          ~on_hole
+          ~on_constr
+          (Product constr_args)
+      in
+      Some expr
+  in
   Exp.construct (lid constr_name) args
 
 (** {2 Code generation} *)
@@ -38,15 +71,9 @@ let zip typ =
 
 let go_up typ derivative =
   let generate_match_case (cons, args) =
-    let pattern =
-      let make_arg pos arg = if arg = Hole then [%pat? ()] else pat_var_from_pos pos in
-      make_constructor_pattern (constr_name cons) args make_arg
-    in
-    let body =
-      let make_arg pos arg = if arg = Hole then [%expr t] else exp_var_from_pos pos in
-      make_constructor_expr (original_constructor_name cons) args make_arg
-    in
-    Exp.case pattern body
+    Exp.case
+      (make_constructor_pattern ~on_hole:(fun _ -> [%pat? ()]) (constr_name cons) args)
+      (make_constructor_expr ~on_hole:(fun _ -> [%expr t]) (original_constructor_name cons) args)
   in
   let value =
     let fun_name = guess_goup_name typ.name in
@@ -69,33 +96,30 @@ let view typ =
   let match_cases: case list =
     List.map
       (fun (constr, constr_args) ->
+         let on_hole _ = failwith "view/hole" in
          let constr_name = constr_name constr in
-         let pattern =
-           make_constructor_pattern
-             constr_name
-             constr_args
-             (fun pos _ -> pat_var_from_pos pos)
-         in
+         let pattern = make_constructor_pattern constr_name constr_args ~on_hole in
          let body =
-           let ugly_index = ref (-1) in
            make_constructor_expr
              (Type_gen.guess_view_constr_name constr_name)
              constr_args
-             (fun pos arg ->
-                match arg with
-                | Constr (name, _) when typ.name = name ->
-                  incr ugly_index;
-                  let child = exp_var_from_pos pos in
-                  let new_ancestor =
-                    make_constructor_expr
-                      (Derive.guess_name !ugly_index constr_name)
-                      constr_args
-                      (fun pos' _ ->
-                         if pos = pos' then [%expr ()]
-                         else exp_var_from_pos pos')
-                  in
-                  [%expr fun () -> ([%e child], [%e new_ancestor] :: ancestors)]
-                | _ -> exp_var_from_pos pos )
+             ~on_hole
+             ~on_constr:(fun pos name args ->
+                 if name = typ.name then begin
+                   assert (args = []); (* FIXME *)
+                   let child = exp_var_from_pos pos in
+                   let new_ancestor =
+                     make_constructor_expr
+                       (Derive.guess_name pos constr_name)
+                       constr_args
+                       ~on_constr:(fun pos' _ _ ->
+                           if pos = pos' then [%expr ()]
+                           else exp_var_from_pos pos')
+                   in
+                   [%expr fun () -> ([%e child], [%e new_ancestor] :: ancestors)]
+                 end else
+                   exp_var_from_pos pos
+               )
          in
          Exp.case pattern body
       )

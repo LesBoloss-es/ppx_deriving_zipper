@@ -13,6 +13,10 @@ let var_ v = Var v
 let product terms = Product terms
 let constr name args = Constr (name, args)
 
+let destruct_product = function
+  | Product args -> args
+  | _ -> invalid_arg "destruct_product"
+
 (** A general type is either a flat type or a union type.
     Defined this way, unions cannot be nested inside other types *)
 type t =
@@ -48,7 +52,7 @@ let rec replace_constr_flat name value = function
       assert (args = []); (* FIXME *)
       value
     end else
-    Constr (name', List.map (replace_constr_flat name value) args)
+      Constr (name', List.map (replace_constr_flat name value) args)
   | Hole -> Hole
 
 let replace_constr name value = function
@@ -56,6 +60,52 @@ let replace_constr name value = function
   | Union variants ->
     let variants = List.map (fun (c, args) -> (c, List.map (replace_constr_flat name value) args)) variants in
     Union variants
+
+module Position = struct
+  type t = int list
+
+  (** All the positions in the type such that [p substree] holds *)
+  let collect p =
+    let rec visit pos acc flat =
+      let acc = if p flat then List.rev pos :: acc else acc in
+      match flat with
+      | Hole | Var _ -> acc
+      | Product terms -> visit_list pos acc terms
+      | Constr (_, args) -> visit_list pos acc args
+    and visit_list pos acc types =
+      let visit_i (acc, i) typ = visit (i :: pos) acc typ, i + 1 in
+      let acc, _ = List.fold_left visit_i (acc, 0) types in
+      acc
+    in
+    visit [] []
+
+  (** Substitute the subtree at pos [pos] with [value] *)
+  let rec replace_at pos value flat = match pos with
+    | [] -> value
+    | i :: pos ->
+      match flat with
+      | Product terms ->
+        List.nth terms i
+        |> replace_at pos value
+        |> ExtList.replace_nth terms i
+        |> product
+      | Constr (name, args) ->
+        List.nth args i
+        |> replace_at pos value
+        |> ExtList.replace_nth args i
+        |> constr name
+      | Hole | Var _ -> invalid_arg "replace_at"
+
+let map_pos ~on_var ~on_hole ~on_product ~on_constr flat =
+  let rec visit pos = function
+    | Var v -> on_var (List.rev pos) v
+    | Hole -> on_hole (List.rev pos)
+    | Product terms -> List.mapi (fun i term -> visit (i :: pos) term) terms |> on_product (List.rev pos)
+    | Constr (name, args) -> List.mapi (fun i term -> visit (i :: pos) term) args |> on_constr (List.rev pos) name
+  in
+  visit [] flat
+end
+
 
 let unit = Constr ("unit", [])
 
