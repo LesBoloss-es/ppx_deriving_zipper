@@ -117,19 +117,16 @@ let unsupported s =
   Format.eprintf "Unsupported: %s@." s;
   exit 1
 
-let flat_of_core_type _ = assert false
-
-let flat_of_constr_arg ct =
+let rec flat_of_core_type ct =
   let open Parsetree in
   match ct.ptyp_desc with
   | Ptyp_var name -> Var name
   | Ptyp_constr (name, args) ->
     let name = Longident.flatten name.txt |> String.concat "." in
     Constr (name, List.map flat_of_core_type args)
-
   | Ptyp_any -> unsupported "Ptyp_any"
   | Ptyp_arrow _ -> unsupported "Ptyp_arrow"
-  | Ptyp_tuple _ -> unsupported "Ptyp_tuple"
+  | Ptyp_tuple args -> Product (List.map flat_of_core_type args)
   | Ptyp_object _ -> unsupported "Ptyp_object"
   | Ptyp_class _ -> unsupported "Ptyp_class"
   | Ptyp_alias _ -> unsupported "Ptyp_alias"
@@ -143,7 +140,7 @@ let variant_of_constr_decl cd =
   assert (cd.pcd_res = None); (* what is this? *)
   let constructor = mk_constr cd.pcd_name.txt in
   match cd.pcd_args with
-  | Pcstr_tuple args -> (constructor, List.map flat_of_constr_arg args)
+  | Pcstr_tuple args -> (constructor, List.map flat_of_core_type args)
   | Pcstr_record _ -> unsupported "Pcstr_record"
 
 let decl_of_type_declaration td =
