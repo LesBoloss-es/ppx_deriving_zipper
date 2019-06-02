@@ -10,6 +10,8 @@ type flat =
   (** a special symbol used when computing derivatives *)
 
 let var_ v = Var v
+let product terms = Product terms
+let constr name args = Constr (name, args)
 
 (** A general type is either a flat type or a union type.
     Defined this way, unions cannot be nested inside other types *)
