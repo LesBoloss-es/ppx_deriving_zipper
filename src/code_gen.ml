@@ -4,10 +4,14 @@ open Ast_helper
 
 let loc = Location.none
 
-let zip typ =
-  let fun_name = Pat.var ("zip_" ^ typ.name |> Location.mknoloc) in
-  let loc = Location.none in
-  [%stri let [%p fun_name] = fun t -> t, []]
+(** {2 Names handling} *)
+
+let guess_zip_name name = "zip_" ^ name
+let guess_unzip_name name = "unzip_" ^ name
+let guess_goup_name name = "go_up_" ^ name
+let guess_view_name name = "view_" ^ name
+
+(** {2} Helpers *)
 
 let var_name_from_pos = Format.sprintf "x%d"
 let exp_var_from_pos i = Exp.ident (lid (var_name_from_pos i))
@@ -25,6 +29,13 @@ let make_constructor_expr constr_name constr_args mk_arg =
     | _ -> Some (Exp.tuple (List.mapi mk_arg constr_args)) in
   Exp.construct (lid constr_name) args
 
+(** {2 Code generation} *)
+
+let zip typ =
+  let fun_name = Pat.var (guess_zip_name typ.name |> Location.mknoloc) in
+  let loc = Location.none in
+  [%stri let [%p fun_name] = fun t -> t, []]
+
 let go_up typ derivative =
   let generate_match_case (cons, args) =
     let pattern =
@@ -38,7 +49,7 @@ let go_up typ derivative =
     Exp.case pattern body
   in
   let value =
-    let fun_name = "go_up_" ^ typ.name in
+    let fun_name = guess_goup_name typ.name in
     let ancestor_match = Exp.match_
         [%expr derivative]
         (List.map generate_match_case (variants derivative.def))
@@ -53,7 +64,7 @@ let go_up typ derivative =
   Str.value Asttypes.Nonrecursive [value]
 
 let view typ =
-  let fun_name = Pat.var ("view_" ^ typ.name |> Location.mknoloc) in
+  let fun_name = Pat.var (guess_view_name typ.name |> Location.mknoloc) in
   let loc = Location.none in
   let match_cases: case list =
     List.map
@@ -98,10 +109,11 @@ let view typ =
   [%stri let [%p fun_name] : [%t zipper_name] -> [%t view_name] = fun (tree, ancestors) -> [%e big_match]]
 
 let unzip typ =
-  let fun_pat = Pat.var ("unzip_" ^ typ.name |> Location.mknoloc) in
-  let fun_expr = Exp.ident ("unzip_" ^ typ.name |> lid) in
-  let go_up_name = Exp.ident ("go_up_" ^ typ.name |> lid) in
+  let unzip_name = guess_unzip_name typ.name in
+  let fun_pat = Pat.var (Location.mknoloc unzip_name) in
+  let fun_expr = Exp.ident (lid unzip_name) in
+  let go_up_name = Exp.ident (guess_goup_name typ.name |> lid) in
   [%stri let rec [%p fun_pat] = fun zipper ->
-    match snd zipper with
-    | [] -> fst zipper
-    | _ -> [%e fun_expr] ([%e go_up_name] zipper)]
+      match snd zipper with
+      | [] -> fst zipper
+      | _ -> [%e fun_expr] ([%e go_up_name] zipper)]
