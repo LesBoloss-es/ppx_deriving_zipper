@@ -33,9 +33,9 @@ let a =
     )
   )
 
-
 let () =
-  let rec go_bot_left z = match view_tree z with
+  let rec go_bot_left z =
+    match TreeZipper.view z with
     | ZNil -> z
     | ZUNode (f, child) ->
       Format.printf "%F@." f;
@@ -44,8 +44,8 @@ let () =
       Format.printf "%d@." n;
       go_bot_left (left ())
   in
-  let (_, ancestors) = go_bot_left (zip_tree a) in
-  let tree = unzip_tree (UNode (42.42, Nil), ancestors) in
+  let (_, ancestors) = go_bot_left (TreeZipper.zip a) in
+  let tree = TreeZipper.unzip (UNode (42.42, Nil), ancestors) in
   Format.printf "%a@." pp_tree tree
 
 let () = print_endline "test.ml OK"

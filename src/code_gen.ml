@@ -6,10 +6,10 @@ let loc = Location.none
 
 (** {2 Names handling} *)
 
-let guess_zip_name name = "zip_" ^ name
-let guess_unzip_name name = "unzip_" ^ name
-let guess_goup_name name = "go_up_" ^ name
-let guess_view_name name = "view_" ^ name
+let guess_zip_name _name = "zip"
+let guess_unzip_name _name = "unzip"
+let guess_go_up_name _name = "go_up"
+let guess_view_name _name = "view"
 
 (** {2} Helpers *)
 
@@ -76,7 +76,7 @@ let go_up typ derivative =
       (make_constructor_expr ~on_hole:(fun _ -> [%expr t]) (original_constructor_name cons) args)
   in
   let value =
-    let fun_name = guess_goup_name typ.name in
+    let fun_name = guess_go_up_name typ.name in
     let ancestor_match = Exp.match_
         [%expr derivative]
         (List.map generate_match_case (variants derivative.def))
@@ -136,7 +136,7 @@ let unzip typ =
   let unzip_name = guess_unzip_name typ.name in
   let fun_pat = Pat.var (Location.mknoloc unzip_name) in
   let fun_expr = Exp.ident (lid unzip_name) in
-  let go_up_name = Exp.ident (guess_goup_name typ.name |> lid) in
+  let go_up_name = Exp.ident (guess_go_up_name typ.name |> lid) in
   [%stri let rec [%p fun_pat] = fun zipper ->
       match snd zipper with
       | [] -> fst zipper
