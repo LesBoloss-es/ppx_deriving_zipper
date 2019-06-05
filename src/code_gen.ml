@@ -83,10 +83,10 @@ let go_up typ derivative =
     in
     Vb.mk (Pat.var (fun_name |> Location.mknoloc))
       [%expr fun (t, ancestors) -> match ancestors with
-        | [] -> invalid_arg [%e Exp.constant (Const.string fun_name)]
+        | [] -> None
         | derivative :: ancestors ->
           let tree = [%e ancestor_match] in
-          tree, ancestors]
+          Some (tree, ancestors)]
   in
   Str.value Asttypes.Nonrecursive [value]
 
@@ -138,6 +138,6 @@ let unzip typ =
   let fun_expr = Exp.ident (lid unzip_name) in
   let go_up_name = Exp.ident (guess_go_up_name typ.name |> lid) in
   [%stri let rec [%p fun_pat] = fun zipper ->
-      match snd zipper with
-      | [] -> fst zipper
-      | _ -> [%e fun_expr] ([%e go_up_name] zipper)]
+      match [%e go_up_name] zipper with
+      | None -> fst zipper
+      | Some zipper -> [%e fun_expr] zipper]
