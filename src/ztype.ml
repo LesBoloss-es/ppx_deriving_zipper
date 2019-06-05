@@ -96,14 +96,14 @@ module Position = struct
         |> constr name
       | Hole | Var _ -> invalid_arg "replace_at"
 
-let map_pos ~on_var ~on_hole ~on_product ~on_constr flat =
-  let rec visit pos = function
-    | Var v -> on_var (List.rev pos) v
-    | Hole -> on_hole (List.rev pos)
-    | Product terms -> List.mapi (fun i term -> visit (i :: pos) term) terms |> on_product (List.rev pos)
-    | Constr (name, args) -> List.mapi (fun i term -> visit (i :: pos) term) args |> on_constr (List.rev pos) name
-  in
-  visit [] flat
+  let map_pos ~on_var ~on_hole ~on_product ~on_constr flat =
+    let rec visit pos = function
+      | Var v -> on_var (List.rev pos) v
+      | Hole -> on_hole (List.rev pos)
+      | Product terms -> List.mapi (fun i term -> visit (i :: pos) term) terms |> on_product (List.rev pos)
+      | Constr (name, args) -> List.mapi (fun i term -> visit (i :: pos) term) args |> on_constr (List.rev pos) name
+    in
+    visit [] flat
 end
 
 
