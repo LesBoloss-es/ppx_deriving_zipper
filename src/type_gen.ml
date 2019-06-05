@@ -18,10 +18,10 @@ let subst t = function
 
 (** {2 Names handling} *)
 
-let guess_derivative_name name = name ^ "_diff"
-let guess_ancestor_name name = name ^ "_ancestor"
-let guess_zipper_name name = name ^ "_zipper"
-let guess_view_name name = name ^ "_view"
+let guess_derivative_name _name = "diff"
+let guess_ancestor_name _name = "ancestor"
+let guess_zipper_name _name = "t"
+let guess_view_name _name = "view"
 let guess_view_constr_name name = "Z" ^ name
 
 (** {2 Type generation} *)
