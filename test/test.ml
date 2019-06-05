@@ -9,7 +9,7 @@ let rec pp_tree fmt = function
   | UNode (f, t) -> Format.fprintf fmt "@[<2>UNode(%F,@ %a)@]" f pp_tree t
   | BNode ((n, l), r) -> Format.fprintf fmt "@[<2>BNode((%d,@ %a),@ %a)@]" n pp_tree l pp_tree r
 
-let a =
+let my_tree =
   BNode (
     (7,
      UNode (
@@ -33,29 +33,38 @@ let a =
     )
   )
 
+let rec go_bot_left z =
+  match TreeZipper.view z with
+  | ZNil -> z
+  | ZUNode (f, child) ->
+    Format.printf "%F@." f;
+    go_bot_left (child ())
+  | ZBNode ((n, left), _) ->
+    Format.printf "%d@." n;
+    go_bot_left (left ())
+
+let my_tree =
+  let (_, ancestors) = go_bot_left (TreeZipper.zip my_tree) in
+  TreeZipper.unzip (UNode (42.42, Nil), ancestors)
+
+let () = Format.printf "%a@." pp_tree my_tree
+
 let () =
-  let rec go_bot_left z =
-    match TreeZipper.view z with
-    | ZNil -> z
-    | ZUNode (f, child) ->
-      Format.printf "%F@." f;
-      go_bot_left (child ())
-    | ZBNode ((n, left), _) ->
-      Format.printf "%d@." n;
-      go_bot_left (left ())
-  in
-  let (_, ancestors) = go_bot_left (TreeZipper.zip a) in
-  let tree = TreeZipper.unzip (UNode (42.42, Nil), ancestors) in
-  Format.printf "%a@." pp_tree tree;
   let (a, b, c) =
     TreeZipper.fold_left
       (fun (a, b, c) -> function
-         | Nil -> (a+1, b, c)
-         | UNode _ -> (a, b+1, c)
-         | BNode _ -> (a, b, c+1))
+         | Nil ->
+           Format.printf "Nil@.";
+           (a+1, b, c)
+         | UNode (f, _) ->
+           Format.printf "UNode (%F, _)@." f;
+           (a, b+1, c)
+         | BNode ((i, _), _) ->
+           Format.printf "BNode ((%d, _), _)@." i;
+           (a, b, c+1))
       (0, 0, 0)
-      tree
+      my_tree
   in
   Format.printf "#Nil = %d ; #UNode = %d ; #BNode = %d@." a b c
 
-let () = print_endline "test.ml OK"
+let () = print_endline "test.ml out@."
