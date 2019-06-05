@@ -9,6 +9,7 @@ let loc = Location.none
 let guess_zip_name _name = "zip"
 let guess_unzip_name _name = "unzip"
 let guess_go_up_name _name = "go_up"
+let guess_go_down_left_name _name = "go_down_left"
 let guess_view_name _name = "view"
 
 (** {2} Helpers *)
@@ -87,6 +88,28 @@ let go_up typ derivative =
         | derivative :: ancestors ->
           let tree = [%e ancestor_match] in
           Some (tree, ancestors)]
+  in
+  Str.value Asttypes.Nonrecursive [value]
+
+let go_down_left typ _derivative =
+  let fun_name = guess_go_down_left_name typ.name in
+  let generate_match_case (cons, args) =
+    Exp.case
+      (make_constructor_pattern (constr_name cons) args)
+      (match Derive.constructor typ.name (cons, args) with
+       | [] -> [%expr None]
+       | (pos, (dcons, dargs)) :: _ ->
+         let dcons = (make_constructor_expr ~on_hole:(fun _ -> [%expr ()]) (constr_name dcons) dargs) in
+         [%expr Some ([%e exp_var_from_pos pos], [%e dcons] :: ancestors)])
+  in
+  let match_ =
+    Exp.match_
+      [%expr t]
+      (List.map generate_match_case (variants typ.def))
+  in
+  let value =
+    Vb.mk (Pat.var (fun_name |> Location.mknoloc))
+      [%expr fun (t, ancestors) -> [%e match_]]
   in
   Str.value Asttypes.Nonrecursive [value]
 

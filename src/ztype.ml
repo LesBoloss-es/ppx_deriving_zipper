@@ -65,7 +65,7 @@ module Position = struct
   type t = int list
 
   (** All the positions in the type such that [p substree] holds *)
-  let collect p =
+  let collect p t =
     let rec visit pos acc flat =
       let acc = if p flat then List.rev pos :: acc else acc in
       match flat with
@@ -77,7 +77,7 @@ module Position = struct
       let acc, _ = List.fold_left visit_i (acc, 0) types in
       acc
     in
-    visit [] []
+    List.rev (visit [] [] t) (* List.rev to return them in order. *)
 
   (** Substitute the subtree at pos [pos] with [value] *)
   let rec replace_at pos value flat = match pos with

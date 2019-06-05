@@ -30,7 +30,6 @@ let%test _ =
   let expected = List.sort compare [[Product [int; Hole]; t]; [Product [int; t]; Hole]] in
   actual = expected
 
-
 (** {2 Differentiation of union types} *)
 
 (* FIXME *)
@@ -45,12 +44,14 @@ let constructor v (constr, args) =
     (fun (pos, typ) ->
        let name = guess_name pos original_name in
        let kind = FromCons (original_name, args) in
-       ({name; kind}, typ))
+       (pos, ({name; kind}, typ)))
     variants
 
 (** The derivative of a union type with respect to a type variable *)
 let union v constructors =
-  ExtList.flat_map (constructor v) constructors
+  ExtList.flat_map
+    (fun cons -> constructor v cons |> List.map snd)
+    constructors
 
 (** The derivative of a type with respect to a type variable *)
 let typ v = function
