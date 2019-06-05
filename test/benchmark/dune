@@ -1,0 +1,3 @@
+(executable
+ (name benchmark)
+ (preprocess (pps ppx_deriving.std ppx_deriving_zipper visitors.ppx)))
