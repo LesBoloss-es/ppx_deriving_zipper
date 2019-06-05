@@ -46,6 +46,16 @@ let () =
   in
   let (_, ancestors) = go_bot_left (TreeZipper.zip a) in
   let tree = TreeZipper.unzip (UNode (42.42, Nil), ancestors) in
-  Format.printf "%a@." pp_tree tree
+  Format.printf "%a@." pp_tree tree;
+  let (a, b, c) =
+    TreeZipper.fold_left
+      (fun (a, b, c) -> function
+         | Nil -> (a+1, b, c)
+         | UNode _ -> (a, b+1, c)
+         | BNode _ -> (a, b, c+1))
+      (0, 0, 0)
+      tree
+  in
+  Format.printf "#Nil = %d ; #UNode = %d ; #BNode = %d@." a b c
 
 let () = print_endline "test.ml OK"

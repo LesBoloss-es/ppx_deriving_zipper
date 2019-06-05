@@ -10,6 +10,7 @@ let guess_zip_name _name = "zip"
 let guess_unzip_name _name = "unzip"
 let guess_go_up_name _name = "go_up"
 let guess_go_down_left_name _name = "go_down_left"
+let guess_go_right_name _name = "go_right"
 let guess_view_name _name = "view"
 
 (** {2} Helpers *)
@@ -91,7 +92,12 @@ let go_up typ derivative =
   in
   Str.value Asttypes.Nonrecursive [value]
 
-let go_down_left typ _derivative =
+let pos_from_hole_in_constr (_cons, args) =
+  match Position.collect ((=) Hole) (product args) with
+  | [pos] -> pos
+  | _ -> assert false
+
+let go_down_left typ =
   let fun_name = guess_go_down_left_name typ.name in
   let generate_match_case (cons, args) =
     Exp.case
@@ -99,11 +105,7 @@ let go_down_left typ _derivative =
       (match Derive.constructor typ.name (cons, args) with
        | [] -> [%expr None]
        | (dcons, dargs) :: _ ->
-         let pos =
-           match Position.collect ((=) Hole) (product dargs) with
-           | [pos] -> pos
-           | _ -> assert false
-         in
+         let pos = pos_from_hole_in_constr (dcons, dargs) in
          let dcons = (make_constructor_expr ~on_hole:(fun _ -> [%expr ()]) (constr_name dcons) dargs) in
          [%expr Some ([%e exp_var_from_pos pos], [%e dcons] :: ancestors)])
   in
@@ -115,6 +117,61 @@ let go_down_left typ _derivative =
   let value =
     Vb.mk (Pat.var (fun_name |> Location.mknoloc))
       [%expr fun (t, ancestors) -> [%e match_]]
+  in
+  Str.value Asttypes.Nonrecursive [value]
+
+let go_right typ =
+  let fun_name = guess_go_right_name typ.name in
+  let generate_match_cases (cons, args) =
+    let dconss = Derive.constructor typ.name (cons, args) in
+    match List.rev dconss with
+    | [] -> []
+    | last :: dconss ->
+      List.fold_left
+        (fun (match_cases, next) curr ->
+           let case =
+             Exp.case
+               (let (cons, args) = curr in
+                make_constructor_pattern ~on_hole:(fun _ -> [%pat? ()]) (constr_name cons) args)
+               (
+                 let old_target =
+                   let pos_curr = pos_from_hole_in_constr curr in
+                   pat_var_from_pos pos_curr
+                 in
+                 let new_target =
+                   let pos_next = pos_from_hole_in_constr next in
+                   exp_var_from_pos pos_next
+                 in
+                 let new_ancestor =
+                   let (cons, args) = next in
+                   make_constructor_expr ~on_hole:(fun _ -> [%expr ()]) (constr_name cons) args
+                 in
+                 [%expr let [%p old_target] = t in Some ([%e new_target], [%e new_ancestor] :: ancestors)]
+               )
+           in
+           (case :: match_cases, curr)
+        )
+        ([
+          let (cons, args) = last in
+          Exp.case
+            (make_constructor_pattern (constr_name cons) args)
+            [%expr None]
+        ], last)
+        dconss
+      |> fst
+  in
+  let match_ =
+    Exp.match_
+      [%expr parent]
+      (List.map generate_match_cases (variants typ.def) |> List.flatten)
+  in
+  let value =
+    Vb.mk (Pat.var (fun_name |> Location.mknoloc))
+      [%expr fun (t, ancestors) ->
+        match ancestors with
+        | [] -> None
+        | parent :: ancestors ->
+          [%e match_]]
   in
   Str.value Asttypes.Nonrecursive [value]
 
@@ -169,3 +226,22 @@ let unzip typ =
       match [%e go_up_name] zipper with
       | None -> fst zipper
       | Some zipper -> [%e fun_expr] zipper]
+
+let fold_left _typ =
+  [%stri
+    let fold_left f a t =
+      let rec fold_down_left a z =
+        let a = f a (fst z) in
+        match go_down_left z with
+        | Some z -> fold_down_left a z
+        | None -> fold_right a z
+      and fold_right a z =
+        match go_right z with
+        | Some z -> fold_down_left a z
+        | None -> fold_up a z
+      and fold_up a z =
+        match go_up z with
+        | Some z -> fold_right a z
+        | None -> a
+      in
+      fold_down_left a (zip t)]
