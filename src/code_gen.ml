@@ -98,7 +98,12 @@ let go_down_left typ _derivative =
       (make_constructor_pattern (constr_name cons) args)
       (match Derive.constructor typ.name (cons, args) with
        | [] -> [%expr None]
-       | (pos, (dcons, dargs)) :: _ ->
+       | (dcons, dargs) :: _ ->
+         let pos =
+           match Position.collect ((=) Hole) (product dargs) with
+           | [pos] -> pos
+           | _ -> assert false
+         in
          let dcons = (make_constructor_expr ~on_hole:(fun _ -> [%expr ()]) (constr_name dcons) dargs) in
          [%expr Some ([%e exp_var_from_pos pos], [%e dcons] :: ancestors)])
   in
