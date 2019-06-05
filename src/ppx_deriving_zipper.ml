@@ -1,7 +1,10 @@
 open Ast_helper
 open Parsetree
 
-let wrap_decl ~is_derivative d = Str.type_ Asttypes.Recursive [Ztype.to_decl ~is_derivative d]
+let wrap_decl ?(non_rec=true) ~is_derivative d =
+  Str.type_
+    Asttypes.(if non_rec then Nonrecursive else Recursive)
+    [Ztype.to_decl ~is_derivative d]
 
 let mangle_type_decl_to_module ?(fixpoint="t") affix type_ =
   let cap = String.capitalize_ascii in
