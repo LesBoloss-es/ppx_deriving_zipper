@@ -10,6 +10,8 @@ type core_type =
   | Constr of string * core_type list
   (** for instance: [int], [int list] or [(string, int) Hashtbl.t] *)
 
+let var_ name = Var name
+
 type variant = string * core_type list (** eg. [Foo of int * bool] *)
 
 (** Type declarations: a type name and a definition *)
@@ -17,6 +19,7 @@ type type_declaration = {
   name : string;      (** type name, eg. [t] *)
   vars : string list; (** type variables, eg ['a] *)
   variants : variant list;
+  loc: Location.t
 }
 
 (** {3 From Parsetree} *)
@@ -63,7 +66,7 @@ module Parse = struct
     | Ptype_variant constr_decls ->
       let variants = List.map variant constr_decls in
       let vars = List.map (fun (v, _) -> as_var v) td.ptype_params in
-      { name; vars; variants }
+      { name; vars; variants; loc = td.ptype_loc }
     | Ptype_record _ -> unsupported "Ptype_record"
     | Ptype_abstract -> unsupported "Ptype_abstract"
     | Ptype_open -> unsupported "Ptype_open"
@@ -86,7 +89,7 @@ module Print = struct
     | Constr (name, args) -> Typ.constr (lid name) (List.map core_type args)
     | Product terms -> Typ.tuple (List.map core_type terms)
 
-  let type_declaration {name; vars; variants} =
+  let type_declaration {name; vars; variants; loc} =
     let open Parsetree in
     let open Ast_helper in
     let params =
@@ -100,5 +103,5 @@ module Print = struct
       Type.constructor ~args name
     in
     let kind = Ptype_variant (List.map mk_constructor variants) in
-    Type.mk ~params ~kind (str name)
+    Type.mk ~loc ~params ~kind (str name)
 end

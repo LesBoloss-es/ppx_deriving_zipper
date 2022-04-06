@@ -1,3 +1,8 @@
 ; (tests
 ;  (names test)
 ;  (preprocess (pps ppx_deriving_zipper ppx_deriving.std)))
+
+(executable
+ (name standalone)
+ (modules Standalone)
+ (libraries ppx_deriving_zipper ppxlib))

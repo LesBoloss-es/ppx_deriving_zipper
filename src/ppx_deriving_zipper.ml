@@ -20,7 +20,9 @@
 (*    | _ -> "") *)
 
 let handle_type_decl type_decl =
-  let _ = Syntax.Parse.type_declaration type_decl in
+  let syntax = Syntax.Parse.type_declaration type_decl in
+  let decl = Types.Parse.decl syntax in
+  Format.eprintf "%a@." Types.pp_decl decl;
   assert false
 
 let type_decl_str ~options ~path =
