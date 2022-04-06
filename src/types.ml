@@ -1,6 +1,8 @@
 type monomial =
   | Var of string
   | Product of monomial list
+  | Hole
+  (* FIXME: Hole -> Ppx_deriving_zipper.hole? *)
   (* FIXME: what about [('a list)]? *)
   [@@deriving show {with_path = false}]
 
