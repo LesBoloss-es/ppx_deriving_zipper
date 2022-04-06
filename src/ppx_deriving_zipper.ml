@@ -30,7 +30,7 @@ let handle_type_decl type_decl =
          Format.eprintf "%a@." Types.pp_polynomial (Derive.polynomial x p))
       (fix_var :: decl.vars)
   );
-  assert false
+  exit 0
 
 let type_decl_str ~options ~path =
   ignore options;
