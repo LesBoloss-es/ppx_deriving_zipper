@@ -23,6 +23,13 @@ let handle_type_decl type_decl =
   let syntax = Syntax.Parse.type_declaration type_decl in
   let decl = Types.Parse.decl syntax in
   Format.eprintf "%a@." Types.pp_decl decl;
+  (
+    let Fixpoint (p, fix_var) = decl.def in
+    List.iter
+      (fun x ->
+         Format.eprintf "%a@." Types.pp_polynomial (Derive.polynomial x p))
+      (fix_var :: decl.vars)
+  );
   assert false
 
 let type_decl_str ~options ~path =
