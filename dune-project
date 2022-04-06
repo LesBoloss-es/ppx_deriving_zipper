@@ -8,9 +8,13 @@
  (synopsis "A PPX deriver for zippers")
  (tags (syntax))
 
+ (source (github LesBoloss-es/ppx_deriving_zipper))
 
  (license LGPL-3.0-or-later)
  (authors
+   "Kerl <kerl@wkerl.me>"
+   "Niols <niols@niols.fr>")
+ (maintainers
    "Kerl <kerl@wkerl.me>"
    "Niols <niols@niols.fr>")
 

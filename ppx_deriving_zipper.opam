@@ -2,9 +2,12 @@
 opam-version: "2.0"
 version: "0.1"
 synopsis: "A PPX deriver for zippers"
+maintainer: ["Kerl <kerl@wkerl.me>" "Niols <niols@niols.fr>"]
 authors: ["Kerl <kerl@wkerl.me>" "Niols <niols@niols.fr>"]
 license: "LGPL-3.0-or-later"
 tags: ["syntax"]
+homepage: "https://github.com/LesBoloss-es/ppx_deriving_zipper"
+bug-reports: "https://github.com/LesBoloss-es/ppx_deriving_zipper/issues"
 depends: [
   "dune" {build}
   "ocaml" {build}
@@ -26,3 +29,4 @@ build: [
     "@doc" {with-doc}
   ]
 ]
+dev-repo: "git+https://github.com/LesBoloss-es/ppx_deriving_zipper.git"
