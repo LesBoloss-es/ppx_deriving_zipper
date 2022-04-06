@@ -24,10 +24,19 @@ let handle_type_decl type_decl =
   let decl = Types.Parse.decl syntax in
   Format.eprintf "%a@." Types.pp_decl decl;
   (
-    let Fixpoint (p, fix_var) = decl.def in
+    let Types.Fixpoint (p, fix_var) = decl.def in
     List.iter
       (fun x ->
-         Format.eprintf "%a@." Types.pp_polynomial (Derive.polynomial x p))
+         let p' = Derive.polynomial x p in
+         let decl_lol =
+           Syntax.{ name = "lol"; vars = []; loc = Location.none;
+                    variants = Types.Print.polynomial p' }
+           |> Syntax.Print.type_declaration
+         in
+         Format.eprintf "%a\n%a@."
+           Types.pp_polynomial p'
+           Pprintast.structure_item (Ast_helper.Str.type_ Asttypes.Nonrecursive [decl_lol])
+      )
       (fix_var :: decl.vars)
   );
   exit 0

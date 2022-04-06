@@ -81,3 +81,20 @@ module Parse = struct
       def = Fixpoint (polynomial_with_subs subs td.variants, fix_var)
     }
 end
+
+(** {3 To Syntax} *)
+
+module Print = struct
+  let rec monomial = function
+    | Var x -> Syntax.Var x
+    | Product ms -> Product (List.map monomial ms)
+    | Hole -> Constr ("hole", []) (* FIXME: fully-qualified name *)
+
+  let polynomial p =
+    List.map
+      (fun (c, m) ->
+         match monomial m with
+         | Product ms -> (c, ms)
+         | m -> (c, [m]))
+      p
+end
