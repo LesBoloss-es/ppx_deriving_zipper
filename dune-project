@@ -9,7 +9,7 @@
  (tags (syntax))
 
 
- (license LGPL3)
+ (license LGPL-3.0-or-later)
  (authors
    "Kerl <kerl@wkerl.me>"
    "Niols <niols@niols.fr>")
@@ -19,4 +19,4 @@
   (ocaml :build)
    ppx_deriving
    ppxlib
-  (ppxfind :build)))
+  (ppx_inline_test :with-test)))
