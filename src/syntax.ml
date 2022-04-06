@@ -1,5 +1,7 @@
 (** {1 Syntax} *)
 
+open Ppxlib
+
 (** Simplified view of [Stdlib.Parsetree]. *)
 
 type core_type =
@@ -29,7 +31,7 @@ module Parse = struct
     match ct.ptyp_desc with
     | Ptyp_var name -> Var name
     | Ptyp_constr (name, args) ->
-      let name = Longident.flatten name.txt |> String.concat "." in
+      let name = Longident.flatten_exn name.txt |> String.concat "." in
       Constr (name, List.map core_type args)
     | Ptyp_any -> unsupported "Ptyp_any"
     | Ptyp_arrow _ -> unsupported "Ptyp_arrow"
@@ -69,14 +71,10 @@ end
 
 (** {3 Our AST Helpers} *)
 
-let str = Location.mknoloc
+let str txt = Location.{ txt; loc = none }
 
 let lid s =
-  String.split_on_char '.' s
-  |> Longident.unflatten
-  |> Option.get (** FIXME *)
-  |> Location.mknoloc
-
+  Location.{ txt = Longident.parse s; loc = none }
 
 (** {3 To Parsetree} *)
 
@@ -97,7 +95,7 @@ module Print = struct
         vars
     in
     let mk_constructor (c, args) =
-      let name = Location.mknoloc c in
+      let name = str c in
       let args = Pcstr_tuple (List.map core_type args) in
       Type.constructor ~args name
     in
