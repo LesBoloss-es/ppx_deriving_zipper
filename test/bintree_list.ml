@@ -1,4 +1,4 @@
-type 'a bintree =
+type ('a, 'b) bintree =
   | Leaf of 'a list
-  | Node of 'a bintree * 'a bintree
+  | Node of 'b * ('a, 'b) bintree * ('a, 'b) bintree
 [@@deriving zipper]
