@@ -6,6 +6,7 @@ type monomial =
   (* FIXME: Hole -> Ppx_deriving_zipper.hole? *)
   [@@deriving show {with_path = false}]
 
+let var_ x = Var x
 let product = function
   | [] -> invalid_arg "Types.product"
   | [x] -> x
@@ -45,7 +46,16 @@ type decl = {
 
 (** {2 Substitution} *)
 
-(* TODO *)
+let rec substitute_monomial ~var ~by = function
+  | Var var' when var = var' -> by
+  | (Var _ | Hole) as m -> m
+  | Product ms -> Product (List.map (substitute_monomial ~var ~by) ms)
+  | App (name, ms) -> App (name, List.map (substitute_monomial ~var ~by) ms)
+
+let substitute_polynomial ~var ~by =
+  List.map
+    (fun (cname, m) ->
+       (cname, substitute_monomial ~var ~by m))
 
 (** {2 From Syntax} *)
 
