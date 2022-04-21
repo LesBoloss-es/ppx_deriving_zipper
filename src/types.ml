@@ -95,6 +95,7 @@ module Print = struct
   let rec monomial = function
     | Var x -> Syntax.Var x
     | Product ms -> Product (List.map monomial ms)
+    | App (name, args) -> Constr (name, List.map monomial args)
     | Hole -> Constr ("hole", []) (* FIXME: fully-qualified name *)
 
   let polynomial p =
