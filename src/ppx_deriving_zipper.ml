@@ -24,7 +24,7 @@ let handle_type_decl type_decl =
     Pprintast.structure_item (Ast_helper.Str.type_ Asttypes.Nonrecursive [type_decl]);
   let syntax = Syntax.Parse.type_declaration type_decl in
   let decl = Types.Parse.decl syntax in
-  Format.eprintf "%a@." Types.pp_decl decl;
+  Format.eprintf "%a\n;;@." Types.pp_decl decl;
   (
     let Types.Fixpoint (p, fix_var) = decl.def in
     List.iter
@@ -35,7 +35,7 @@ let handle_type_decl type_decl =
                     variants = Types.Print.polynomial p' }
            |> Syntax.Print.type_declaration
          in
-         Format.eprintf "%a\n%a@."
+         Format.eprintf "%a\n;;\n%a\n;;@."
            Types.pp_polynomial p'
            Pprintast.structure_item (Ast_helper.Str.type_ Asttypes.Nonrecursive [decl_lol])
       )
