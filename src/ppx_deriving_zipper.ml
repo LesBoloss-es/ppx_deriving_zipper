@@ -20,6 +20,8 @@
 (*    | _ -> "") *)
 
 let handle_type_decl type_decl =
+  Format.eprintf "%a\n;;@."
+    Pprintast.structure_item (Ast_helper.Str.type_ Asttypes.Nonrecursive [type_decl]);
   let syntax = Syntax.Parse.type_declaration type_decl in
   let decl = Types.Parse.decl syntax in
   Format.eprintf "%a@." Types.pp_decl decl;
@@ -29,7 +31,7 @@ let handle_type_decl type_decl =
       (fun x ->
          let p' = Derive.polynomial x p in
          let decl_lol =
-           Syntax.{ name = "lol"; vars = []; loc = Location.none;
+           Syntax.{ name = "derivative_"^x; vars = []; loc = Location.none;
                     variants = Types.Print.polynomial p' }
            |> Syntax.Print.type_declaration
          in
