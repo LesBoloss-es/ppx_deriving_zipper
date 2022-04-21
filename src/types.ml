@@ -123,4 +123,17 @@ module Print = struct
          | Product ms -> (c, ms)
          | m -> (c, [m]))
       p
+
+  let decl {name; vars; def} =
+    let Fixpoint (poly, fix_var) = def in
+    let type_app = App (name, List.map var_ vars) in
+    let poly = substitute_polynomial poly
+        ~var:fix_var ~by:type_app
+    in
+    Syntax.{
+      name;
+      vars;
+      definition = Variant (polynomial poly);
+      loc = Location.none;
+    }
 end
