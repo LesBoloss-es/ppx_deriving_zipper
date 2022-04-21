@@ -25,23 +25,28 @@ let handle_type_decl type_decl =
   let syntax = Syntax.Parse.type_declaration type_decl in
   let decl = Types.Parse.decl syntax in
   Format.eprintf "%a\n;;@." Types.pp_decl decl;
-  (
-    let Types.Fixpoint (p, fix_var) = decl.def in
-    List.iter
-      (fun x ->
-         let p' = Derive.polynomial x p in
-         let decl_lol =
-           Syntax.{ name = "derivative_"^x; vars = []; loc = Location.none;
-                    definition = Variant (Types.Print.polynomial p') }
-           |> Syntax.Print.type_declaration
-         in
-         Format.eprintf "%a\n;;\n%a\n;;@."
-           Types.pp_polynomial p'
-           Pprintast.structure_item (Ast_helper.Str.type_ Asttypes.Nonrecursive [decl_lol])
-      )
-      (fix_var :: decl.vars)
-  );
+  Type_gen.type_gen decl
+  |> List.map Syntax.Print.type_declaration
+  |> List.iter (fun d ->
+      Pprintast.structure_item
+        Format.err_formatter
+        (Ast_helper.Str.type_ Asttypes.Nonrecursive [d]));
   exit 0
+
+  (* let Types.Fixpoint (p, fix_var) = decl.def in *)
+  (* List.iter *)
+  (*   (fun x -> *)
+  (*      let p' = Derive.polynomial x p in *)
+  (*      let decl_lol = *)
+  (*        Syntax.{ name = "derivative_"^x; vars = []; loc = Location.none; *)
+  (*                 definition = Variant (Types.Print.polynomial p') } *)
+  (*        |> Syntax.Print.type_declaration *)
+  (*      in *)
+  (*      Format.eprintf "%a\n;;\n%a\n;;@." *)
+  (*        Types.pp_polynomial p' *)
+  (*        Pprintast.structure_item (Ast_helper.Str.type_ Asttypes.Nonrecursive [decl_lol]) *)
+  (*   ) *)
+  (*   (fix_var :: decl.vars) *)
 
 let type_decl_str ~options ~path =
   ignore options;

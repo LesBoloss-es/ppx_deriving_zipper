@@ -43,8 +43,11 @@ type decl = {
   ]}
 *)
 
+(** {2 Substitution} *)
 
-(** {3 From Syntax} *)
+(* TODO *)
+
+(** {2 From Syntax} *)
 
 module Parse = struct
   (** [naive_subs ~loc name vars fix_var name' args'] *)
@@ -94,7 +97,7 @@ module Parse = struct
       assert false
 end
 
-(** {3 To Syntax} *)
+(** {2 To Syntax} *)
 
 module Print = struct
   let rec monomial = function
