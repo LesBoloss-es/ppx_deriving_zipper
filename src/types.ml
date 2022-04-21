@@ -82,11 +82,16 @@ module Parse = struct
   let decl (td: Syntax.type_declaration) : decl =
     let fix_var = "fixpoint" (* FIXME *) in
     let subs = naive_subs ~loc:td.loc td.name td.vars fix_var in
-    {
-      name = td.name;
-      vars = td.vars;
-      def = Fixpoint (polynomial_with_subs subs td.variants, fix_var)
-    }
+    match td.definition with
+    | Variant variants ->
+      {
+        name = td.name;
+        vars = td.vars;
+        def = Fixpoint (polynomial_with_subs subs variants, fix_var)
+      }
+    | Alias _ ->
+      Format.eprintf "TODO: implement zippers of type aliases@.";
+      assert false
 end
 
 (** {3 To Syntax} *)

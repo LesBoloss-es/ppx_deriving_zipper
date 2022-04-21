@@ -32,7 +32,7 @@ let handle_type_decl type_decl =
          let p' = Derive.polynomial x p in
          let decl_lol =
            Syntax.{ name = "derivative_"^x; vars = []; loc = Location.none;
-                    variants = Types.Print.polynomial p' }
+                    definition = Variant (Types.Print.polynomial p') }
            |> Syntax.Print.type_declaration
          in
          Format.eprintf "%a\n;;\n%a\n;;@."

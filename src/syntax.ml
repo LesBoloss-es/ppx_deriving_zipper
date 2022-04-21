@@ -12,13 +12,17 @@ type core_type =
 
 let var_ name = Var name
 
-type variant = string * core_type list (** eg. [Foo of int * bool] *)
+type definition =
+  | Variant of (string * core_type list) list
+    (** eg. [[Foo of int * bool; Bar of 'a]] *)
+  | Alias of core_type
+    (** eg. [int * bool list] *)
 
 (** Type declarations: a type name and a definition *)
 type type_declaration = {
   name : string;      (** type name, eg. [t] *)
   vars : string list; (** type variables, eg ['a] *)
-  variants : variant list;
+  definition : definition;
   loc: Location.t
 }
 
@@ -47,7 +51,7 @@ module Parse = struct
     | Ptyp_package _ -> unsupported "Ptyp_package"
     | Ptyp_extension _ -> unsupported "Ptyp_extension"
 
-  let variant (cd : Parsetree.constructor_declaration) : variant =
+  let variant (cd : Parsetree.constructor_declaration) : string * core_type list =
     let open Parsetree in
     assert (cd.pcd_res = None); (* FIXME: what is this? *)
     let constructor = cd.pcd_name.txt in
@@ -64,9 +68,9 @@ module Parse = struct
     in
     match td.ptype_kind with
     | Ptype_variant constr_decls ->
-      let variants = List.map variant constr_decls in
+      let definition = Variant (List.map variant constr_decls) in
       let vars = List.map (fun (v, _) -> as_var v) td.ptype_params in
-      { name; vars; variants; loc = td.ptype_loc }
+      { name; vars; definition; loc = td.ptype_loc }
     | Ptype_record _ -> unsupported "Ptype_record"
     | Ptype_abstract -> unsupported "Ptype_abstract"
     | Ptype_open -> unsupported "Ptype_open"
@@ -89,19 +93,25 @@ module Print = struct
     | Constr (name, args) -> Typ.constr (lid name) (List.map core_type args)
     | Product terms -> Typ.tuple (List.map core_type terms)
 
-  let type_declaration {name; vars; variants; loc} =
-    let open Parsetree in
+  let mk_constructor (c, args) =
+    let open Ast_helper in
+    let name = str c in
+    let args = Pcstr_tuple (List.map core_type args) in
+    Type.constructor ~args name
+
+  let kind_and_manifest = function
+    | Variant variants ->
+      Ptype_variant (List.map mk_constructor variants), None
+    | Alias ct ->
+      Ptype_abstract, Some (core_type ct)
+
+  let type_declaration {name; vars; definition; loc} =
     let open Ast_helper in
     let params =
       List.map
         (fun v -> Typ.var v, (Asttypes.NoVariance, Asttypes.NoInjectivity))
         vars
     in
-    let mk_constructor (c, args) =
-      let name = str c in
-      let args = Pcstr_tuple (List.map core_type args) in
-      Type.constructor ~args name
-    in
-    let kind = Ptype_variant (List.map mk_constructor variants) in
-    Type.mk ~loc ~params ~kind (str name)
+    let kind, manifest = kind_and_manifest definition in
+    Type.mk ~loc ~params ~kind ?manifest (str name)
 end
