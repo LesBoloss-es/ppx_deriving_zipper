@@ -27,10 +27,7 @@ let handle_type_decl type_decl =
   Format.eprintf "%a\n;;@." Types.pp_decl decl;
   Type_gen.type_gen decl
   |> List.map Syntax.Print.type_declaration
-  |> List.iter (fun d ->
-      Pprintast.structure_item
-        Format.err_formatter
-        (Ast_helper.Str.type_ Asttypes.Nonrecursive [d]));
+  |> List.iter (Pprintast.structure_item Format.err_formatter);
   exit 0
 
   (* let Types.Fixpoint (p, fix_var) = decl.def in *)

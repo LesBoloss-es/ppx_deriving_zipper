@@ -22,6 +22,7 @@ type definition =
 type type_declaration = {
   name : string;      (** type name, eg. [t] *)
   vars : string list; (** type variables, eg ['a] *)
+  recursive : bool;
   definition : definition;
   loc: Location.t
 }
@@ -70,7 +71,7 @@ module Parse = struct
     | Ptype_variant constr_decls ->
       let definition = Variant (List.map variant constr_decls) in
       let vars = List.map (fun (v, _) -> as_var v) td.ptype_params in
-      { name; vars; definition; loc = td.ptype_loc }
+      { name; vars; recursive = false; definition; loc = td.ptype_loc }
     | Ptype_record _ -> unsupported "Ptype_record"
     | Ptype_abstract -> unsupported "Ptype_abstract"
     | Ptype_open -> unsupported "Ptype_open"
@@ -105,7 +106,7 @@ module Print = struct
     | Alias ct ->
       Ptype_abstract, Some (core_type ct)
 
-  let type_declaration {name; vars; definition; loc} =
+  let type_declaration {name; vars; recursive; definition; loc} =
     let open Ast_helper in
     let params =
       List.map
@@ -113,5 +114,7 @@ module Print = struct
         vars
     in
     let kind, manifest = kind_and_manifest definition in
-    Type.mk ~loc ~params ~kind ?manifest (str name)
+    Str.type_
+      (if recursive then Recursive else Nonrecursive)
+      [Type.mk ~loc ~params ~kind ?manifest (str name)]
 end

@@ -37,6 +37,7 @@ let type_gen (td : Types.decl) : Syntax.type_declaration list =
          Syntax.
            { name= Naming.poly_zd td.name var
            ; vars= td.vars
+           ; recursive= false
            ; definition= Variant (Types.Print.polynomial poly')
            ; loc= Location.none })
       td.vars
@@ -46,6 +47,7 @@ let type_gen (td : Types.decl) : Syntax.type_declaration list =
     Syntax.{
       name = Naming.zdz td.name;
       vars = td.vars;
+      recursive = false;
       definition = Alias (Product [
           constr_to_vars td.name;
           constr_to_vars ancestors.name
@@ -59,6 +61,7 @@ let type_gen (td : Types.decl) : Syntax.type_declaration list =
         Syntax.{
           name = Naming.d td.name i;
           vars = td.vars;
+          recursive = false;
           definition = Alias (Product [
               constr_to_vars poly_zdvar.name;
               constr_to_vars ancestors.name

@@ -147,6 +147,7 @@ module Print = struct
     Syntax.{
       name;
       vars;
+      recursive = true;
       definition = Variant (polynomial poly);
       loc = Location.none;
     }
