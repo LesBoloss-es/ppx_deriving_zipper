@@ -25,20 +25,9 @@ let type_gen (td : Types.decl) : Syntax.type_declaration list =
            ; loc= Location.none })
     td.vars
   in
-  let ancestor =
-    Syntax.{
-      name = Naming.ancestor td.name;
-      vars = td.vars;
-      definition = Alias (Constr (poly_zdfix.name, List.map Syntax.var_ td.vars));
-      loc = Location.none;
-    }
-  in
 
   [poly_zdfix]
   @ poly_zdvars
-  @ [ancestor]
   (* let zdz = assert false in *)
   (* let dis = assert false in *)
-  (* let ancestor = assert false in *)
-  (* let zipper = assert false in *)
-  (* [poly_zdfix] @ poly_zdvars @ [zdz] @ dis @ [ancestor; zipper] *)
+  (* [zdz] @ dis *)
