@@ -1,9 +1,9 @@
 type monomial =
   | Var of string
   | Product of monomial list
+  | App of string * monomial list    (** type application (eg. [('a t, int) Hashtbl.t]) *)
   | Hole
   (* FIXME: Hole -> Ppx_deriving_zipper.hole? *)
-  (* FIXME: what about [('a list)]? *)
   [@@deriving show {with_path = false}]
 
 let product = function
@@ -47,21 +47,28 @@ type decl = {
 (** {3 From Syntax} *)
 
 module Parse = struct
-  let naive_subs ~loc name vars fix_var
+  (** [naive_subs ~loc name vars fix_var name' args'] *)
+  (** - name: name of the type (eg. t) *)
+  (** - vars: variables of the type (eg. 'a) *)
+  (** - fix_var: type variable that will replace eg. ['a t] *)
+  (** - name': name of the type encountered within the definition (eg. s) *)
+  (** - args': type arguments of the the type encountered with the definition (eg. ['b], [int]) *)
+  let rec naive_subs ~loc name vars fix_var
     : string -> Syntax.core_type list -> monomial
-  =
-    let vars = List.map Syntax.var_ vars in
-    fun name' args ->
+    =
+    fun name' args' ->
       if name = name' then
-        if args = vars then Var fix_var
+        let vars = List.map Syntax.var_ vars in
+        if args' = vars then Var fix_var
         else
           Location.raise_errorf ~loc
             "Unsupported: use of same type with different variables: %s" name
       else
-        Location.raise_errorf ~loc
-          "Unsupported: use of a type that is not %s" name
+        let subs = naive_subs ~loc name vars fix_var in
+        let args' = List.map (monomial_with_subs subs) args' in
+        App (name', args')
 
-  let rec monomial_with_subs subs : Syntax.core_type -> monomial =
+  and monomial_with_subs subs : Syntax.core_type -> monomial =
     function
     | Var name -> Var name
     | Constr (name, args) -> subs name args
