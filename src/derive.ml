@@ -1,9 +1,3 @@
-(* FIXME: move this somewhere else *)
-(* FIXME: derivatives names should depend only on the position of their
-   argument, not its name *)
-let derivative_name (type_name: string) (index: int) : string =
-  Format.sprintf "%s_d%d" type_name index
-
 let rec monomial (x : string) : Types.monomial -> Types.monomial list
   = function
     | Var y when y = x -> [Hole]
@@ -14,7 +8,7 @@ let rec monomial (x : string) : Types.monomial -> Types.monomial list
           (fun i arg ->
             List.map
               (fun m ->
-                Types.Product [App (derivative_name name i, args); m])
+                Types.Product [App (Naming.d name i, args); m])
               (monomial x arg))
           args
         |> List.flatten
