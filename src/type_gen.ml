@@ -8,17 +8,25 @@ let type_gen (td : Types.decl) : Syntax.type_declaration list =
     Syntax.Constr (name, List.map Syntax.var_ td.vars)
   in
 
-  let poly_zdfix =
+  let fix_var2 = "fixme_var2" in
+
+  let ancestors =
     let poly' = Derive.polynomial fix_var poly in
     let poly' = Types.substitute_polynomial poly'
         ~var:fix_var ~by:(app_to_vars td.name)
     in
-    Syntax.
-      { name= Naming.poly_zdfix td.name
-      ; vars= td.vars
-      ; definition= Variant (Types.Print.polynomial poly')
-      ; loc= Location.none }
+    let poly' =
+      poly'
+      |> Types.polynomial_flat_multiply_by_monomial (Var fix_var2)
+      |> Types.polynomial_add ["Nil", Types.one]
+    in
+    Types.(Print.decl {
+        name = Naming.ancestors td.name;
+        vars = td.vars;
+        def = Fixpoint (poly', fix_var2);
+      })
   in
+
   let poly_zdvars =
     List.map
       (fun var ->
@@ -40,7 +48,7 @@ let type_gen (td : Types.decl) : Syntax.type_declaration list =
       vars = td.vars;
       definition = Alias (Product [
           constr_to_vars td.name;
-          Constr ("list", [constr_to_vars poly_zdfix.name])
+          constr_to_vars ancestors.name
         ]);
       loc = Location.none
     }
@@ -53,14 +61,14 @@ let type_gen (td : Types.decl) : Syntax.type_declaration list =
           vars = td.vars;
           definition = Alias (Product [
               constr_to_vars poly_zdvar.name;
-              Constr ("list", [constr_to_vars poly_zdfix.name])
+              constr_to_vars ancestors.name
             ]);
           loc = Location.none
         })
       poly_zdvars
   in
 
-  [poly_zdfix]
+  [ancestors]
   @ poly_zdvars
   @ [zdz]
   @ dis
