@@ -4,6 +4,9 @@ let type_gen (td : Types.decl) : Syntax.type_declaration list =
   let app_to_vars name =
     Types.App (name, List.map Types.var_ td.vars)
   in
+  let constr_to_vars name =
+    Syntax.Constr (name, List.map Syntax.var_ td.vars)
+  in
 
   let poly_zdfix =
     let poly' = Derive.polynomial fix_var poly in
@@ -30,10 +33,21 @@ let type_gen (td : Types.decl) : Syntax.type_declaration list =
            ; loc= Location.none })
       td.vars
   in
+
+  let zdz =
+    Syntax.{
+      name = Naming.zdz td.name;
+      vars = td.vars;
+      definition = Alias (Product [
+          constr_to_vars td.name;
+          Constr ("list", [constr_to_vars poly_zdfix.name])
+        ]);
+      loc = Location.none
+    }
   in
 
   [poly_zdfix]
   @ poly_zdvars
-  (* let zdz = assert false in *)
+  @ [zdz]
   (* let dis = assert false in *)
-  (* [zdz] @ dis *)
+  (* dis *)
