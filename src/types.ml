@@ -11,9 +11,23 @@ let product = function
   | [] -> invalid_arg "Types.product"
   | [x] -> x
   | args -> Product args
+let one = Product []
+
+(** Multiply but flattens one level of product. *)
+let monomial_flat_multiply m1 m2 =
+  match (m1, m2) with
+  | Product m1s, Product m2s -> Product (m1s @ m2s)
+  | Product m1s, _ -> Product (m1s @ [m2])
+  | _, Product m2s -> Product (m1 :: m2s)
+  | _, _ -> Product [m1; m2]
 
 type polynomial = (string * monomial) list
 [@@deriving show {with_path = false}]
+
+let polynomial_add = (@)
+
+let polynomial_flat_multiply_by_monomial mono' =
+  List.map (fun (cname, mono) -> (cname, monomial_flat_multiply mono mono'))
 
 type fixpoint = Fixpoint of polynomial * string
 [@@deriving show {with_path = false}]
