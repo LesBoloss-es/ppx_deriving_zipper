@@ -45,9 +45,22 @@ let type_gen (td : Types.decl) : Syntax.type_declaration list =
       loc = Location.none
     }
   in
+  let dis =
+    List.mapi
+      (fun i poly_zdvar ->
+        Syntax.{
+          name = Naming.d td.name i;
+          vars = td.vars;
+          definition = Alias (Product [
+              constr_to_vars poly_zdvar.name;
+              Constr ("list", [constr_to_vars poly_zdfix.name])
+            ]);
+          loc = Location.none
+        })
+      poly_zdvars
+  in
 
   [poly_zdfix]
   @ poly_zdvars
   @ [zdz]
-  (* let dis = assert false in *)
-  (* dis *)
+  @ dis
