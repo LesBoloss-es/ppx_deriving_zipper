@@ -3,6 +3,7 @@ let type_gen (td : Types.decl) : Syntax.type_declaration list =
   let by =
     Types.App (td.name, List.map Types.var_ td.vars)
   in
+
   let poly_zdfix =
     let poly' = Derive.polynomial fix_var poly in
     let poly' = Types.substitute_polynomial ~var:fix_var ~by poly' in
@@ -24,8 +25,18 @@ let type_gen (td : Types.decl) : Syntax.type_declaration list =
            ; loc= Location.none })
     td.vars
   in
+  let ancestor =
+    Syntax.{
+      name = Naming.ancestor td.name;
+      vars = td.vars;
+      definition = Alias (Constr (poly_zdfix.name, List.map Syntax.var_ td.vars));
+      loc = Location.none;
+    }
+  in
+
   [poly_zdfix]
   @ poly_zdvars
+  @ [ancestor]
   (* let zdz = assert false in *)
   (* let dis = assert false in *)
   (* let ancestor = assert false in *)
