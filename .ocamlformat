@@ -1,0 +1,6 @@
+profile = ocamlformat
+sequence-style = terminator
+cases-exp-indent = 2
+break-separators = after
+field-space = loose
+break-cases = fit
