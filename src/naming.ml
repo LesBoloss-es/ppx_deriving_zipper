@@ -10,6 +10,10 @@ let zdz = Format.sprintf "%s_zipper"
 (* This type could be called %s_zdz, but it will be exposed to the user and
    therefore deserves a more human-readable name. *)
 
+(** {2 Naming conventions for constructors} *)
+
+let nth_constructor = Format.sprintf "%s%d"
+
 (** {2 Naming conventions for the functions} *)
 
 let zip = Format.sprintf "zip_%s"
