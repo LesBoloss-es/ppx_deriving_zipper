@@ -77,25 +77,20 @@ module Parse = struct
     | Ptype_open -> unsupported "Ptype_open"
 end
 
-(** {3 Our AST Helpers} *)
-
-let str txt = Location.{ txt; loc = none }
-
-let lid s =
-  Location.{ txt = Longident.parse s; loc = none }
 
 (** {3 To Parsetree} *)
 
 module Print = struct
+  open Ast_helper
+  open More_ast_helpers
+
   let rec core_type =
-    let open Ast_helper in
     function
     | Var name -> Typ.var name
     | Constr (name, args) -> Typ.constr (lid name) (List.map core_type args)
     | Product terms -> Typ.tuple (List.map core_type terms)
 
   let mk_constructor (c, args) =
-    let open Ast_helper in
     let name = str c in
     let args = Pcstr_tuple (List.map core_type args) in
     Type.constructor ~args name
@@ -107,7 +102,6 @@ module Print = struct
       Ptype_abstract, Some (core_type ct)
 
   let type_declaration {name; vars; recursive; definition; loc} =
-    let open Ast_helper in
     let params =
       List.map
         (fun v -> Typ.var v, (Asttypes.NoVariance, Asttypes.NoInjectivity))

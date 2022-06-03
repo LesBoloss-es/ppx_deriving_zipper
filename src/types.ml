@@ -21,6 +21,7 @@ let monomial_flat_multiply m1 m2 =
   | _, Product m2s -> Product (m1 :: m2s)
   | _, _ -> Product [m1; m2]
 
+(** List of [(constructor name, monomial)] *)
 type polynomial = (string * monomial) list
 [@@deriving show {with_path = false}]
 
