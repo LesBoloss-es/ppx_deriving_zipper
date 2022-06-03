@@ -1,55 +1,56 @@
 Notes
 =====
 
+Example
+-------
+
+Consider the following type of trees that enforce a non-empty list of children in the `Node` constructor:
 ```ocaml
-type 'a bintree =
-  | Leaf of 'a
-  | Node of 'a bintree * 'a bintree
+type tree =
+  | Leaf
+  | Node of tree * tree list
 ```
 
-On ne génère pas mais on voit comme :
-
-```ocaml
-type ('a, 'fixpoint) bintree_poly =
-  | Leaf of 'a
-  | Node of 'fixpoint * 'fixpoint
+We can have a more “mathematical” view of this type as:
+```
+tree(z) = z + z.tree(z).list(z, tree(z))
+```
+We can also see it as:
+```
+tree(z) = P(z, tree(z))
+P(z, t) = z + z.t.list(z, t)
 ```
 
-### Type du zipper
-
-On dérive `bintree_poly` par rapport à `'fixpoint`. C'est particulier parce que
-c'est l'emplacement où on a récursivement la structure. Ça nous donne le type
-des ancètres :
-
-```ocaml
-type 'a bintree_ancestors =
-  | Nil
-  | Node0 of hole * 'a bintree * 'a bintree_ancestors
-  | Node1 of 'a bintree * hole * 'a bintree_ancestors
+```
+∂z tree(z) = ∂z P(z, tree(z)) + ∂t P(z, tree(z)) ∂z tree(z)
 ```
 
-Tout ça nous donne le zipper :
-
-```ocaml
-type 'a bintree_zipper = 'a bintree * 'a bintree_ancestors
+```
+∂z P(z, t) = 1 + t.list(z, t) + z.t.∂z list(z, t)
+z∂z P(z, t) = tree(z) + z.t.z∂z list(z, t)
 ```
 
-### Types pour composer
-
-Pour composer plus tard (eg. `'a list bintree`), il nous faut les dérivées par
-rapport aux autres variables. Pour `'a`, on génère :
-
-```ocaml
-type 'a bintree_poly_zda =
-  | Leaf of hole
+```
+∂t P(z, t) = z.1.list(z,t) + z.t.∂a list(z, t)
 ```
 
-- `da` = on dérive par rapport à `'a`
-- `zda` = on re-multiplie par `z` = on “garde” le constructeur
+```
+tree•(z) = z∂z.tree(z)
+         = z∂z P(z, tree(z)) + ∂t P(z, tree(z)) z∂z tree(z)
+         = (tree(z) + z.tree(z).list•(z,tree(z))) . list(∂t P(z, tree(z)))
+```
 
-Ça nous donne le type qui se compose bien (et qui ne mentionne pas le nom, parce
-que, de l'extérieur, on ne le voit pas) :
+
+
+
+
+
+
+
+
 
 ```ocaml
-type 'a bintree_d0 = 'a binree_poly_zda * 'a bintree_ancestors
+type 'a list = | Nil | Cons of 'a * 'a list
+list(z, 'a) = Q(z, 'a, list(z, 'a))
+Q(z, 'a, l) = z + z.'a.l
 ```
