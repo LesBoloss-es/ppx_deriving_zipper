@@ -1,3 +1,3 @@
-(executable
- (name tree_list)
+(tests
+ (names tree_list list2)
  (preprocess (pps ppx_deriving.show)))
