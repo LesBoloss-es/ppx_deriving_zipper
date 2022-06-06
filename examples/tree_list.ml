@@ -1,118 +1,93 @@
-(** {1 Example} *)
+(** {1 A possible implementation of tree zippers}
 
-type hole = Hole
-[@@deriving show {with_path=false}]
+    This demonstrates the composability with other zippers (here: that of lists)
+*)
 
-(** Result of a [go_up] operation: either already at the [Top], returning the
-    unzipped zipper, or went [Up] once. *)
-type ('typ, 'zipper_type) go_up_result =
-  | Top of 'typ
-  | Up of 'zipper_type
-[@@deriving show {with_path=false}]
+open ZipperCommon
 
-(* {2 Lists} *)
 
-type 'a mlist =
-  | Nil
-  | Cons of 'a * 'a mlist
-[@@deriving show {with_path=false}]
+(** An artificial example of trees with two constructors: [Leaf] of arity zero
+    and [Node] carrying a nonempty list of trees encoded as a pair of a tree and
+    a list of trees.
 
-let (//) x l = Cons (x, l)
-
-module ListZipper = struct
-  (** {3 Zipper of Lists} *)
-
-  type 'a ancestors =
-    | NoAncestor
-    | ACons of 'a * hole * 'a ancestors
-  [@@deriving show {with_path=false}]
-
-  (** {4 Derivative wrt. ['a]} *)
-
-  type 'a poly_d0 = D0Cons of hole * 'a mlist
-  [@@deriving show {with_path=false}]
-  type 'a d0 = 'a poly_d0 * 'a ancestors
-  [@@deriving show {with_path=false}]
-
-  (** {4 Zipper}
-
-      (more or less the same as the derivative wrt. [z]) *)
-
-  (** NOTE: this would actually require a [raw]. *)
-  type 'a head = 'a mlist
-  [@@deriving show {with_path=false}]
-
-  type 'a t = 'a head * 'a ancestors
-  [@@deriving show {with_path=false}]
-
-  (** {4 [go_up]s} *)
-
-  let go_up_d0 (x : 'a) ((head, ancestors) : 'a d0)
-    : ('a mlist, ('a * 'a d0)) go_up_result
-    =
-    let D0Cons (Hole, list) = head in
-    match ancestors with
-    | NoAncestor -> Top (Cons (x, list))
-    | ACons (x', Hole, ancestors) ->
-      Up (x', (D0Cons (Hole, Cons (x, list)), ancestors))
-
-  let go_up ((head, ancestors) : 'a t) : ('a mlist, 'a t) go_up_result =
-    (* NOTE: we'd have to match on [Raw]/non-[Raw] but everything is [Raw]. *)
-    match ancestors with
-    | NoAncestor ->
-      Top head
-    | ACons (x, Hole, ancestors) ->
-      Up (Cons (x, head), ancestors)
-end
-
-(** {2 Trees} *)
-
-type tree =
+    This type is the fix point of the type [z + z * 't * 't list] with respect
+    to ['t]. *)
+type t =
   | Leaf
-  | Node of tree * tree mlist
+  | Node of t * t List2.t
 [@@deriving show {with_path=false}]
 
-module TreeZipper = struct
+
+(** {2 Tree zippers} *)
+
+module Zipper = struct
+  type tree = t
+  (** An alias to the type of trees, because we will shadow it in this module. *)
+
   (** {3 Zipper for Trees} *)
 
+  (** The ancestors type describes how to reconstruct the list as you move the
+      pointer up.
+      It is obtained as a list of derivatives of the type defining the type of
+      trees by fix point wrt. the fix point variable. *)
   type ancestors =
     | NoAncestor
-    | ANodeL of hole * tree mlist * ancestors
-    | ANodeR of tree * tree ListZipper.d0 * ancestors
-  [@@deriving show {with_path=false}]
+    | Node0 of hole * tree List2.t * ancestors
+    | Node1 of tree * tree List2.Zipper.d0 * ancestors
 
-  (** {4 Zipper} *)
-
+  (** In a tree zipper, the pointer might either be on a tree constructor
+      ([Leaf] or [Node]) or on a list constructor on the right hande side of a
+      [Node].
+      This types lists all the possibilities. *)
   type head =
-    | Raw of tree
-    | PtdNode of tree * tree ListZipper.t
-  [@@deriving show {with_path=false}]
+    | Raw of tree (* FIXME: I don't like the name [Raw] *)
+    | InNode1 of tree * tree List2.Zipper.t
 
+  (** A tree zipper is thus given by a [head] carrying the pointer and a list of
+      ancestors. *)
   type t = head * ancestors
-  [@@deriving show {with_path=false}]
 
-  let go_up ((head, ancestors) : t) : (tree, t) go_up_result =
-    match head with
-    | Raw head ->
-      (
-        match ancestors with
-        | NoAncestor ->
-          Top head
-        | ANodeL (Hole, trees, ancestors) ->
-          Up (Raw (Node (head, trees)), ancestors)
-        | ANodeR (tree, list_d0, ancestors) ->
-          match ListZipper.go_up_d0 head list_d0 with
-          | Top trees ->
-            Up (Raw (Node (tree, trees)), ancestors)
-          | Up (head, list_d0) ->
-            Up (Raw head, ANodeR (tree, list_d0, ancestors))
-      )
-    | PtdNode (tree, list_zipper) ->
-      (
-        match ListZipper.go_up list_zipper with
-        | Top trees ->
-          Up (Raw (Node (tree, trees)), ancestors)
-        | Up list_zipper ->
-          Up (PtdNode (tree, list_zipper), ancestors)
-      )
+  (** {3 Manipulating zippers} *)
+
+  (** {4 Creation} *)
+
+  (** [zip xs] creates a zipper with the pointer set to the head constructor *)
+  let zip (tree: tree) : t = (Raw tree, NoAncestor)
+
+
+  (** {4 Moving up} *)
+
+  (** Moving up in a zipper is defined as moving the pointer to the data
+      constructor that is "one step above" the currently pointed data
+      constructor.
+      - If the current pointer is on a tree constructor, we go up one ancestor.
+      - If the current pointer is somewhere in the list of children of a [Node],
+        move it up one list constructor. *)
+
+  type nonrec go_up_result = (tree, t) go_up_result
+
+  (** Go one constructor up in a [z]-zipper. *)
+  let go_up: t -> go_up_result = function
+    (* The pointer is on a tree constructor, go up one ancestor. *)
+    | Raw tree, NoAncestor ->
+      (* There is no ancestor: were are at the top of the structure. *)
+      Top tree
+    | Raw tree, Node0 (Hole, trees, ancestors) ->
+      (* the next ancestor has a hole in [Node (Hole, ...)]: plug the current
+         tree in this hole and set the pointer to the new [Node]. *)
+      Up (Raw (Node (tree, trees)), ancestors)
+    | Raw tree, Node1 (tree', list_d0, ancestors) ->
+      (* the next ancestor has a hole somewhere in the right list: plug the
+         current tree in this hole and set the pointer to the list constructor
+         carrying this [Hole]. *)
+      let list_zipper = List2.Zipper.fill_d0 tree list_d0 in
+      Up (InNode1 (tree', list_zipper), ancestors)
+
+    (* The pointer is in the list in the rhs of [Node]. *)
+    | InNode1 (tree, list_zipper), ancestors ->
+      (* Go up one step in the list. If reach the top of the list, move the
+         pointer to the [Node] constructor. *)
+      match List2.Zipper.go_up list_zipper with
+      | Top trees -> Up (Raw (Node (tree, trees)), ancestors)
+      | Up list_zipper -> Up (InNode1 (tree, list_zipper), ancestors)
 end

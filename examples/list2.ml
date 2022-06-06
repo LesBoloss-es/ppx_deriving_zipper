@@ -1,5 +1,7 @@
 (** {1 Another possible implementation of list zippers} *)
 
+open ZipperCommon
+
 
 (** The type of lists can be seen as the fixpoint of the polynomial type
     [z + z * 'a * 'l] wrt. the variable ['l] where the [z]s materialise the data
@@ -9,26 +11,20 @@ type 'a t = 'a Stdlib.List.t =
   | (::) of 'a * 'a t
 
 
+let pp pp_elt fmt =
+  Format.fprintf fmt "[%a]"
+    (Format.pp_print_list
+      ~pp_sep:(fun fmt () -> Format.pp_print_string fmt "; ")
+      pp_elt)
+
+
 (** {2 List zippers} *)
 
 module Zipper = struct
   type 'a list = 'a t
   (** An alias to the type of list, because we will shadow it in this module. *)
 
-  (** {3 General zipper utilities}
-
-      NB: This section is not specific to lists *)
-
-  type hole = Hole
-  (** We see a zipper, aka a data structure with a distinguished element, as a
-      pair of a structure with a hole in place of that distinguished element,
-      and that element on the side.
-      There is no need to physically represent this hole in the type of zippers
-      but this helps readability.
-      This is the type of holes. *)
-
   (** {3 Definition of the zipper(s)} *)
-
 
   (** The ancestors type is common to all list zippers. It describes how to
       reconstruct the list as you move the pointer up.
@@ -67,6 +63,11 @@ module Zipper = struct
   (** [zip xs] creates a zipper with the pointer set to the head constructor *)
   let zip (xs: 'a list) : 'a t = (xs, NoAncestor)
 
+  (** Filling the hole in a [d0] *)
+  let fill_d0 (x: 'a) (d0: 'a d0) : 'a t =
+    let Cons0 (Hole, xs), ancestors = d0 in
+    (x :: xs, ancestors)
+
 
   (** {4 Moving up} *)
 
@@ -77,9 +78,7 @@ module Zipper = struct
       - in a ['a]-zipper, this is the data constructor holding the ['a] that is
         pointed at. *)
 
-  type 'a go_up_result =
-    | Top of 'a list
-    | Up of 'a t
+  type nonrec 'a go_up_result = ('a list, 'a t) go_up_result
 
   (** Go one constructor up in a [z]-zipper. *)
   let go_up (zipper : 'a t) : 'a go_up_result =
