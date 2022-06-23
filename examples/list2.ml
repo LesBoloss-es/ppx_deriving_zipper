@@ -109,15 +109,19 @@ module Zipper = struct
 
   (** {4 Moving down with views} *)
 
-  type 'a view =
+  type ('a, 'view_a) generic_view =
     | []
-    | (::) of 'a * (unit -> 'a t)
+    | (::) of 'view_a * (unit -> 'a t)
 
-  let view (zipper: 'a t) : 'a view =
+  type 'a view = ('a, 'a) generic_view
+
+  let generic_view (view_a : 'a -> 'view_a) (zipper : 'a t) : ('a, 'view_a) generic_view =
     let list, ancestors = zipper in
     match list with
     | [] -> []
-    | x :: xs -> x :: (fun () -> xs, Cons1 (x, Hole, ancestors))
+    | x :: xs -> (view_a x) :: (fun () -> xs, Cons1 (x, Hole, ancestors))
+
+  let view zipper = generic_view Fun.id zipper
 end
 
 
