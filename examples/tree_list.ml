@@ -90,6 +90,79 @@ module Zipper = struct
       match List2.Zipper.go_up list_zipper with
       | Top trees -> Up (Raw (Node (tree, trees)), ancestors)
       | Up list_zipper -> Up (InNode1 (tree, list_zipper), ancestors)
+
+  let go_up_exn zipper =
+    match go_up zipper with
+    | Up zipper -> zipper
+    | Top _ -> invalid_arg "Tree_list.Zipper.go_up_exn"
+
+  type here =
+    | Here of (unit -> t)
+    | NotHere of (unit -> t)
+
+  type up_view =
+    | Top of tree
+    | Node of here * here
+    | Cons of here * here
+
+  let up (zipper : t) : up_view =
+    (* FIXME: on peut spécialiser *)
+    let here = Here (fun () -> go_up_exn zipper) in
+    match zipper with
+    | Raw tree, NoAncestor -> Top tree
+
+    | Raw tree, Node0 (Hole, trees, ancestors) ->
+        Node (
+          here,
+          NotHere (fun () -> InNode1 (tree, List2.Zipper.zip trees), ancestors)
+        )
+
+    | Raw tree, Node1 (tree', list_d0, ancestors) ->
+        Cons (
+          here,
+          NotHere (fun () ->
+            match List2.Zipper.(view (fill_d0 tree list_d0)) with
+            | [] -> assert false
+            | _ :: xs -> InNode1 (tree', xs ()), ancestors)
+        )
+
+    | InNode1 (tree, list_zipper), ancestors ->
+      match List2.Zipper.go_up list_zipper with
+      | Top trees ->
+          Node (
+            NotHere (fun () -> Raw tree, Node0 (Hole, trees, ancestors)),
+            here
+          )
+      | Up list_zipper ->
+          Cons (
+            NotHere (fun () -> InNode1 (tree, list_zipper), ancestors),
+            here
+          )
+
+  (** {4 Moving down} *)
+
+  type down_view =
+    | Leaf
+    | Node of (unit -> t) * (unit -> t)
+    | Nil
+    | Cons of (unit -> t) * (unit -> t)
+
+  let down ((head, ancestors) : t) : down_view =
+    match head with
+    | Raw Leaf -> Leaf
+    | Raw (Node (t, ts)) ->
+      Node ((fun () -> (Raw t, Node0 (Hole, ts, ancestors))),
+            (fun () -> (InNode1 (t, List2.Zipper.zip ts), ancestors)))
+    | InNode1 (t, l_zipper) ->
+      let (ts, l_ancestors) = l_zipper in
+      match ts with
+      | [] -> Nil
+      | t' :: ts' ->
+        Cons (
+          (fun () ->
+            (Raw t', Node1 (t, (Cons0 (Hole, ts'), l_ancestors), ancestors))),
+          (fun () ->
+            (InNode1 (t, (ts', Cons1 (t', Hole, l_ancestors))), ancestors)))
 end
 
 
@@ -98,24 +171,16 @@ end
 (** {3 How to Rewrite Recursive Algorithms for Dummies} *)
 
 let exists path tree =
-
   let rec exists (path : int list) (tree : Zipper.t) =
     match path with
     | [] -> true
     | n :: path ->
       assert (n >= 0);
-      match Zipper.view tree with
-      | Leaf -> false
-      | Node (tree, _) when n = 0 -> exists path (tree ())
-      | Node (_, trees) -> exists_list (n - 1) path (trees ())
-
-  and exists_list (n : int) (path : int list) (list : List2.Zipper.t) =
-    assert (n >= 0);
-    match List2.Zipper.view list with
-    | [] -> false
-    | tree :: _ when n = 0 -> exists path (tree ())
-    | _ :: trees -> exists_list (n - 1) path (trees ())
-
+      match Zipper.down tree with
+      | Leaf | Nil -> false
+      | (Node (tree, _) | Cons (tree, _))  when n = 0 -> exists path (tree ())
+      | (Node (_, trees) | Cons (_, trees)) ->
+        exists ((n - 1) :: path) (trees ())
   in
 
   if List.exists ((>) 0) path then
@@ -140,33 +205,11 @@ let rec big_up (zipper : Zipper.t) : Zipper.go_up_result =
 
 
 
-
-
-
-
-let view ((head, ancestors) : Zipper.t) : Zipper.view =
-  match head with
-  | Raw Leaf -> Leaf
-  | Raw (Node (t, ts)) ->
-    Node ((fun () -> (Raw t, Node0 (Hole, ts, ancestors))),
-          (fun () -> (InNode1 (t, List2.Zipper.zip ts, ancestors))))
-  | InNode1 (t, l_zipper) ->
-    let (ts, l_ancestors) = l_zipper in
-    match ts with
-    | [] -> Nil
-    | t' :: ts' ->
-      Cons ((fun () -> (Raw t', Node1 (t, Cons0 (Hole, ts', l_ancestors), ancestors))),
-            (fun () -> (InNode1 (t, (ts', Cons1 (t', Hole, l_ancestors))), ancestors)))
-
-
-
-
-
 let move_once (dir : direction) (tree : Zipper.t) : Zipper.t option =
   match dir with
   | Down ->
     (
-      match Zipper.view tree with
+      match Zipper.down tree with
       | Leaf -> None
       | Node (tree, _) -> Some (tree ())
       | _ -> assert false
@@ -179,12 +222,12 @@ let move_once (dir : direction) (tree : Zipper.t) : Zipper.t option =
     )
   | Left ->
     (
-      match Zipper.up_view tree with
-      | Top -> None
+      match Zipper.up tree with
+      | Top _ -> None
       | Node (Here _, _) -> None
       | Cons (Here up, _) ->
         (
-          match Zipper.up_view (up ()) with
+          match Zipper.up (up ()) with
           | Node (NotHere tree, Here _)
           | Cons (NotHere tree, Here _) -> Some (tree ())
           | _ -> assert false
@@ -193,12 +236,12 @@ let move_once (dir : direction) (tree : Zipper.t) : Zipper.t option =
     )
   | Right ->
     (
-      match Zipper.up_view tree with
-      | Top -> None
+      match Zipper.up tree with
+      | Top _ -> None
       | Node (Here _, NotHere trees)
       | Cons (Here _, NotHere trees) ->
         (
-          match Zipper.view (trees ()) with
+          match Zipper.down (trees ()) with
           | Nil -> None
           | Cons (tree, _) -> Some (tree ())
           | _ -> assert false
@@ -206,51 +249,38 @@ let move_once (dir : direction) (tree : Zipper.t) : Zipper.t option =
       | _ -> assert false
     )
 
-
-
-
-
-type tree_zipper_view =
-  | Leaf
-  | Node of tree_zipper thunk * tree_zipper thunk
-  | InNode of view_arg * list_zipper_view view_arg
-
-
-
-
-
-
-          match List2.Zipper.up_view (list ()) with
-          | Top  ->
-            (
-              (* NOTE: maybe the above [Node] could carry a [NotHere thunk]. *)
-              match Zipper.view (up ()) with
-              | Node (tree, _) -> Some (tree ())
-              | _ -> assert false
-            )
-          | Cons (Here _, _) -> assert false
-          | Cons (_, Here up_list) ->
-            (
-              match List2.Zipper.view (up_list ()) with
-              | Nil -> assert false
-              | Cons (tree, trees) ->
-                (Raw tree, Cons0 (Hole, (fst (trees ())), ancestors))
-
-
-
-        )
-    )
-
-
-
-
-
-
-
-
-
-
 let rec move path tree =
   match path with
   | [] -> Some tree
   | dir :: path -> Option.bind (move_once dir tree) (move path)
+
+let cherry = Node (Leaf, [])
+
+let example =
+  Node (
+    Leaf,
+    [
+      Leaf;
+      Leaf;
+      Node (Leaf, [Leaf]);
+    ]
+  )
+
+let get = function
+  | Zipper.Raw tree, _ -> tree
+  | _ -> invalid_arg "get"
+
+let () =
+  let tree, ancestors =
+    Zipper.zip example
+    |> move [Down; Right; Right; Right; Down; Right; Up; Left; Up]
+    |> Option.get
+  in
+  assert (ancestors = NoAncestor);
+  assert (tree = Raw example)
+
+let () =
+  let ex = Zipper.zip example in
+  let z1 = move [Down; Right; Right; Right; Down; Right; Up] ex in
+  let z2 = move [Down; Right; Right; Right] ex in
+  assert (z1 = z2)
