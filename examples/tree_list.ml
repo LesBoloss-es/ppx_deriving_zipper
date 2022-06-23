@@ -70,7 +70,7 @@ module Zipper = struct
   let go_up: t -> go_up_result = function
     (* The pointer is on a tree constructor, go up one ancestor. *)
     | Raw tree, NoAncestor ->
-      (* There is no ancestor: were are at the top of the structure. *)
+      (* There is no ancestor: we are at the top of the structure. *)
       Top tree
     | Raw tree, Node0 (Hole, trees, ancestors) ->
       (* the next ancestor has a hole in [Node (Hole, ...)]: plug the current
