@@ -23,7 +23,7 @@ module Zipper = struct
   (** We see a zipper, aka a data structure with a distinguished element, as a
       pair of a structure with a hole in place of that distinguished element,
       and that element on the side.
-      There is no need to physically represent this holes in the type of zippers
+      There is no need to physically represent this hole in the type of zippers
       but this helps readability.
       This is the type of holes. *)
 
@@ -42,7 +42,7 @@ module Zipper = struct
       that is currently being pointed at (a list), and a list of ancestors. *)
   type 'a t = 'a list * 'a ancestors
 
-  (** We could define an ['a]-zipper, or zipper wrt. the ['a], is given by:
+  (** We could define an ['a]-zipper, or zipper wrt. the ['a], as:
       - the pointed ['a]
       - the constructor holding it with a [Hole] in place of the missing ['a]
       - the list of ancestors of this constructor.
@@ -94,7 +94,7 @@ module Zipper = struct
     | Top _ -> invalid_arg "Zipper.go_up_exn"
     | Up zipper -> zipper
 
-  (** Forget the pointing and get back the unpointed structure *)
+  (** Forget the pointer and get back the unpointed structure *)
   let rec unzip (zipper: 'a t) : 'a list =
     match go_up zipper with
     | Top list -> list
