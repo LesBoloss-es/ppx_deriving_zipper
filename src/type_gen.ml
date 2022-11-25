@@ -49,7 +49,7 @@ let head (td : Types.decl) : Types.decl =
 
   let poly =
     poly
-    |> Derive.polynomial_pseudo ~var:fix_var
+    |> Polynomial.derive_pseudo ~var:fix_var
     |> Polynomial.substitute ~var:fix_var ~by:(the_type td)
     |> List.cons ("Head", the_type td)
   in

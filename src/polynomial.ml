@@ -34,3 +34,18 @@ let derive (x : string) : t -> t =
         (fun i term ->
           (Naming.nth_constructor constructor_name i, term))
         (Monomial.derive x m))
+
+(** {2 Pseudo-derivation}
+
+    For documentation, cf. module {!Monomial}. *)
+
+(** WARNING: here we treat [poly] as if it was divided by [z]. Put differently,
+    we treat the contructors as constants rather than [z]s. *)
+let derive_pseudo ~var poly =
+  List.concat_map
+    (fun (constr, mono) ->
+       List.map
+         (fun (path, mono) ->
+            Naming.head_constructor constr (Monomial.Path.to_list path), mono)
+         (Monomial.derive_pseudo ~var Monomial.Path.empty mono))
+    poly
