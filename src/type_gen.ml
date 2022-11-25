@@ -7,9 +7,16 @@ let the_type (td : Types.decl) : Types.monomial =
 let poly_zdvar (td : Types.decl) (var : string) : _ =
   let (Fixpoint (poly, fix_var)) = td.def in
 
-  poly
-  |> Derive.polynomial var
-  |> Types.substitute_polynomial ~var:fix_var ~by:(the_type td)
+  let poly =
+    poly
+    |> Derive.polynomial var
+    |> Types.substitute_polynomial ~var:fix_var ~by:(the_type td)
+  in
+  Types.{
+    name = Naming.poly_zd td.name var;
+    vars = td.vars;
+    def = Fixpoint (poly, "fixme_does_not_occur"); (* FIXME *)
+  }
 
 (** Generate the [ancestors] type *)
 let ancestors (td : Types.decl) : Types.decl =
@@ -39,14 +46,7 @@ let type_gen (td : Types.decl) : Syntax.type_declaration list =
   let poly_zdvars =
     List.map
       (fun var ->
-        let poly = poly_zdvar td var in
-        let definition = Syntax.Variant (Types.Print.polynomial poly) in
-        Syntax.
-          { name= Naming.poly_zd td.name var
-          ; vars= td.vars
-          ; recursive= false
-          ; definition
-          ; loc= Location.none })
+        Types.Print.decl (poly_zdvar td var))
       td.vars
   in
 
