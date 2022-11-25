@@ -13,6 +13,7 @@
           scope = on.buildOpamProject { } "ppx_deriving_zipper" ./. {
             merlin = "*";
             ocaml-base-compiler = "*";
+            ocamlformat = "*";
             ocaml-lsp-server = "*";
             ocp-indent = "*";
             utop = "*";
@@ -26,6 +27,7 @@
           devShells.default = pkgs.mkShell {
             buildInputs = [
               scope.merlin
+              scope.ocamlformat
               scope.ocaml-lsp-server
               scope.ocp-indent
               scope.utop
