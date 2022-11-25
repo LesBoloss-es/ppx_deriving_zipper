@@ -49,7 +49,7 @@ let rec substitute ~var ~by = function
   | Prod ms -> Prod (List.map (substitute ~var ~by) ms)
   | App (name, ms) -> App (name, List.map (substitute ~var ~by) ms)
 
-(** {3 Arithmetic operations on monomials} *)
+(** {2 Arithmetic operations on monomials} *)
 
 (** Multiply but flattens one level of product. *)
 let monomial_flat_multiply m1 m2 =
@@ -58,3 +58,37 @@ let monomial_flat_multiply m1 m2 =
   | Prod m1s, _ -> Prod (m1s @ [m2])
   | _, Prod m2s -> Prod (m1 :: m2s)
   | _, _ -> Prod [m1; m2]
+
+(** {2 Partial derivations} *)
+
+(** [derive x m] computes the derivative of the monomial [m] with respect to
+    the variable [x].
+    Note that deriving a monomial typically yields a sum of monomials because of
+    the Leibniz rule ([d(u * v)/dx = du/dx * v + u * dv/dx]) and each term of
+    the sum is contains exactly one occurrence of the symbol [Hole] which
+    represents where a variable have be killed by the derivation. *)
+let rec derive (x : string) : t -> t list = function
+  | Var y when y = x -> [Hole]
+  | Var _ -> []
+  | Prod ms -> derive_prod x [] ms
+  | App (name, args) -> derive_app x name args
+  | Hole -> assert false
+
+and derive_prod x acc = function
+  | [] -> []
+  | m :: ms ->
+    (* if we derive this [m] (as [m'])... *)
+    List.map
+      (fun m' -> product (List.rev_append acc (m' :: ms)))
+      (derive x m)
+    @ (* if we derive something later... *)
+    derive_prod x (m :: acc) ms
+
+and derive_app x name args =
+  args
+  |> List.mapi
+      (fun i arg ->
+        List.map
+          (fun m -> Prod [App (Naming.d name i, args); m])
+          (derive x arg) )
+  |> List.flatten
