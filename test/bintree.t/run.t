@@ -1,14 +1,4 @@
-  $ ../standalone.exe ./bintree.ml
-  [DEBUG] type 'a bintree =
-    | Leaf of 'a 
-    | Node of 'a bintree * 'a bintree [@@deriving zipper]
-  [DEBUG] { name = "bintree"; vars = ["a"];
-    def =
-    (Fixpoint (
-       [("Leaf", (Var "a"));
-         ("Node", (Product [(Var "fixpoint"); (Var "fixpoint")]))],
-       "fixpoint"))
-    }
+  $ ../standalone.exe ./bintree.ml 2>/dev/null
   type 'a bintree =
     | Leaf of 'a 
     | Node of 'a bintree * 'a bintree [@@deriving zipper]

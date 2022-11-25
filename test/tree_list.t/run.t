@@ -1,26 +1,4 @@
-  $ ../standalone.exe tree_list.ml
-  [DEBUG] type 'a lst =
-    | Nil 
-    | Cons of 'a * 'a lst [@@deriving zipper]
-  [DEBUG] { name = "lst"; vars = ["a"];
-    def =
-    (Fixpoint (
-       [("Nil", (Product []));
-         ("Cons", (Product [(Var "a"); (Var "fixpoint")]))],
-       "fixpoint"))
-    }
-  [DEBUG] type t =
-    | Leaf 
-    | Node of t * t lst [@@deriving zipper]
-  [DEBUG] { name = "t"; vars = [];
-    def =
-    (Fixpoint (
-       [("Leaf", (Product []));
-         ("Node",
-          (Product [(Var "fixpoint"); (App ("lst", [(Var "fixpoint")]))]))
-         ],
-       "fixpoint"))
-    }
+  $ ../standalone.exe tree_list.ml 2>/dev/null
   type 'a lst =
     | Nil 
     | Cons of 'a * 'a lst [@@deriving zipper]
