@@ -69,17 +69,19 @@ let rec polynomial (x : string) : Types.polynomial -> Types.polynomial =
 module Path : sig
   type t
 
+  val empty: t
   val enter_product: int -> t -> t
   val enter_app: int -> t -> t
+  val to_list: t -> [`Product of int | `App of int] list
 end = struct
-  type step =
-    | InProduct of int
-    | InApp of int
+  type step = [`App of int | `Product of int]
   type t = step list
   (** Invariant: reversed *)
 
-  let enter_product i path = InProduct i :: path
-  let enter_app i path = InApp i :: path
+  let empty = []
+  let enter_product i path = `Product i :: path
+  let enter_app i path = `App i :: path
+  let to_list = List.rev
 end
 
 let rec monomial_pseudo ~var (path : Path.t) :
@@ -114,3 +116,14 @@ and monomial_app_pseudo ~var path name args =
     args
   |> List.flatten
   |> List.cons (path, Types.App (Naming.zdz name, args))
+
+(** WARNING: here we treat [poly] as if it was divided by [z]. Put differently,
+    we treat the contructors as constants rather than [z]s. *)
+let polynomial_pseudo ~var poly =
+  List.concat_map
+    (fun (constr, mono) ->
+      List.map
+        (fun (path, mono) ->
+          Naming.head_constructor constr (Path.to_list path), mono)
+        (monomial_pseudo ~var Path.empty mono))
+    poly
