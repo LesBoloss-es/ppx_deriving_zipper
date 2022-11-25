@@ -1,5 +1,5 @@
 type monomial =
-  | Var of string
+  | Var of string  (* FIXME: replace string with string | Fix ? *)
   | Product of monomial list (* always at least two elements *)
   | App of string * monomial list    (** type application (eg. [('a t, int) Hashtbl.t]) *)
   | Hole
@@ -27,7 +27,7 @@ type polynomial = (string * monomial) list
 
 let polynomial_add = (@)
 
-let polynomial_flat_multiply_by_monomial mono' =
+let polynomial_flat_right_multiply_by_monomial mono' =
   List.map (fun (cname, mono) -> (cname, monomial_flat_multiply mono mono'))
 
 type fixpoint = Fixpoint of polynomial * string
