@@ -23,4 +23,4 @@
   (ocaml :build)
    ppx_deriving
    ppxlib
-  (ppx_inline_test :with-test)))
+  (ppx_inline_test (or :build :with-test))))
