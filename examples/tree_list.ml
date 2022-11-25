@@ -198,10 +198,11 @@ type direction = Up | Left | Right | Down
 type path = direction list
 
 let rec big_up (zipper : Zipper.t) : Zipper.go_up_result =
-  match Zipper.go_up zipper with
-  | (Top _ | Up (Raw _, _)) as result -> result
-  | Up ((InNode1 _, _) as zipper) -> big_up zipper
-  (* | Up zipper -> big_up zipper *)
+  match Zipper.up zipper with
+  | Top tree -> Top tree (* LOL *)
+  | (Node (Here up, _) | Node (_, Here up)) -> Up (up ())
+  | (Cons (Here up, _) | Cons (_, Here up)) -> big_up (up ())
+  | _ -> assert false
 
 
 
