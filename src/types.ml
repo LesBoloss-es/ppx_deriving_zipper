@@ -1,17 +1,17 @@
 type monomial =
   | Var of string
-  | Product of monomial list
+  | Product of monomial list (* always at least two elements *)
   | App of string * monomial list    (** type application (eg. [('a t, int) Hashtbl.t]) *)
   | Hole
   (* FIXME: Hole -> Ppx_deriving_zipper.hole? *)
   [@@deriving show {with_path = false}]
 
 let var_ x = Var x
+let one = Product []
 let product = function
-  | [] -> invalid_arg "Types.product"
+  | [] -> one
   | [x] -> x
   | args -> Product args
-let one = Product []
 
 (** Multiply but flattens one level of product. *)
 let monomial_flat_multiply m1 m2 =
