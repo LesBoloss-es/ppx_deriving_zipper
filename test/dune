@@ -3,32 +3,4 @@
  (modules Standalone)
  (libraries ppx_deriving_zipper ppxlib))
 
-(rule
- (deps ./bintree.ml)
- (action
-  (with-stdout-to bintree.output
-   (run ./standalone.exe ./bintree.ml))))
-(rule
- (alias runtest)
- (action
-  (diff bintree.expected bintree.output)))
-
-(rule
- (deps ./bintree_list.ml)
- (action
-  (with-stdout-to bintree_list.output
-   (run ./standalone.exe ./bintree_list.ml))))
-(rule
- (alias runtest)
- (action
-  (diff bintree_list.expected bintree_list.output)))
-
-(rule
- (deps ./tree_list.ml)
- (action
-  (with-stdout-to tree_list.output
-   (run ./standalone.exe ./tree_list.ml))))
-(rule
- (alias runtest)
- (action
-  (diff tree_list.expected tree_list.output)))
+(cram (deps ./standalone.exe))

@@ -9,14 +9,15 @@ tags: ["syntax"]
 homepage: "https://github.com/LesBoloss-es/ppx_deriving_zipper"
 bug-reports: "https://github.com/LesBoloss-es/ppx_deriving_zipper/issues"
 depends: [
-  "dune" {build}
+  "dune" {>= "2.7" & build}
   "ocaml" {build}
   "ppx_deriving"
   "ppxlib"
   "ppx_inline_test" {build | with-test}
+  "odoc" {with-doc}
 ]
 build: [
-  ["dune" "subst"] {pinned}
+  ["dune" "subst"] {dev}
   [
     "dune"
     "build"

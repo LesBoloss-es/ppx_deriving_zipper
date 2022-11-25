@@ -1,5 +1,7 @@
-(lang dune 2.5)
+(lang dune 2.7)
+
 (generate_opam_files true)
+(cram enable)
 
 (package
  (name ppx_deriving_zipper)
