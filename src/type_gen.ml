@@ -18,7 +18,7 @@ let type_gen (td : Types.decl) : Syntax.type_declaration list =
     let poly' =
       poly'
       |> Types.polynomial_flat_multiply_by_monomial (Var fix_var2)
-      |> Types.polynomial_add ["Nil", Types.one]
+      |> Types.polynomial_add ["NoAncestor", Types.one]
     in
     Types.(Print.decl {
         name = Naming.ancestors td.name;
