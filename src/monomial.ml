@@ -52,7 +52,7 @@ let rec substitute ~var ~by = function
 (** {2 Arithmetic operations on monomials} *)
 
 (** Multiply but flattens one level of product. *)
-let monomial_flat_multiply m1 m2 =
+let flat_multiply m1 m2 =
   match (m1, m2) with
   | Prod m1s, Prod m2s -> Prod (m1s @ m2s)
   | Prod m1s, _ -> Prod (m1s @ [m2])

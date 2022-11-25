@@ -1,6 +1,6 @@
 (** {2 Types as fixpoints of polynomials} *)
 
-type fixpoint = Fixpoint of Polynomial.polynomial * string
+type fixpoint = Fixpoint of Polynomial.t * string
 [@@deriving show {with_path = false}]
 
 type decl = {
@@ -99,9 +99,7 @@ module Print = struct
   let decl {name; vars; def} =
     let Fixpoint (poly, fix_var) = def in
     let type_app = Monomial.App (name, List.map Monomial.var vars) in
-    let poly = Polynomial.substitute_polynomial poly
-        ~var:fix_var ~by:type_app
-    in
+    let poly = Polynomial.substitute poly ~var:fix_var ~by:type_app in
     Syntax.{
       name;
       vars;

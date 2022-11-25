@@ -9,8 +9,8 @@ let poly_zdvar (td : Types.decl) (var : string) : _ =
 
   let poly =
     poly
-    |> Derive.polynomial var
-    |> Polynomial.substitute_polynomial ~var:fix_var ~by:(the_type td)
+    |> Polynomial.derive var
+    |> Polynomial.substitute ~var:fix_var ~by:(the_type td)
   in
   Types.{
     name = Naming.poly_zd td.name var;
@@ -25,10 +25,10 @@ let ancestors (td : Types.decl) : Types.decl =
 
   let poly' =
     poly
-    |> Derive.polynomial fix_var
-    |> Polynomial.substitute_polynomial ~var:fix_var ~by:(the_type td)
-    |> Polynomial.polynomial_flat_right_multiply_by_monomial (Var fix_var2)
-    |> Polynomial.polynomial_add ["NoAncestor", Monomial.one]
+    |> Polynomial.derive fix_var
+    |> Polynomial.substitute ~var:fix_var ~by:(the_type td)
+    |> Polynomial.flat_right_multiply_by_monomial (Var fix_var2)
+    |> Polynomial.add ["NoAncestor", Monomial.one]
   in
   Types.{
     name = Naming.ancestors td.name;
@@ -50,7 +50,7 @@ let head (td : Types.decl) : Types.decl =
   let poly =
     poly
     |> Derive.polynomial_pseudo ~var:fix_var
-    |> Polynomial.substitute_polynomial ~var:fix_var ~by:(the_type td)
+    |> Polynomial.substitute ~var:fix_var ~by:(the_type td)
     |> List.cons ("Head", the_type td)
   in
 

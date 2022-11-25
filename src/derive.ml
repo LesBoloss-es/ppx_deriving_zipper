@@ -1,16 +1,3 @@
-let named_monomial x (constructor_name, m) =
-  List.mapi
-    (fun i term -> (Naming.nth_constructor constructor_name i, term))
-    (Monomial.derive x m)
-
-(** [polynomial x poly] computes the derivative of the polynomial [poly]
-    with respect to the variable [x] *)
-let rec polynomial (x : string) : Polynomial.polynomial -> Polynomial.polynomial =
-  function
-  | [] -> []
-  | m :: ms -> named_monomial x m @ polynomial x ms
-
-
 (** TODO: move following function to [Polynomial] and link to doc about
     pseudo-derivation in [Monomial]. *)
 
