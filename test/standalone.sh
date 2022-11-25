@@ -1,7 +1,7 @@
 #!/bin/sh
 set -euC
 
-if out=$(dune exec test/standalone.exe -- "$1" 2>&1); then
+if out=$(dune exec test/standalone.exe -- "$1"); then
   echo "$out" \
     | ocamlformat --impl --enable-outside-detected-project - \
     | {
