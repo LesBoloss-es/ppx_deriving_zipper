@@ -11,3 +11,7 @@
 /doc
 /bin
 /lib
+
+## Direnv
+/.direnv
+/.envrc
