@@ -2,7 +2,7 @@
     the variable [x].
     Note that deriving a monomial may yield a sum of monomials
     (eg. [d(u * v)/dx = du/dx * v + u * dv/dx]. *)
-let rec monomial (x : string) : Types.monomial -> Types.monomial list = function
+let rec monomial (x : string) : Monomial.monomial -> Monomial.monomial list = function
   | Var y when y = x -> [Hole]
   | Var _ -> []
   | Product ms -> monomial_product x [] ms
@@ -10,7 +10,7 @@ let rec monomial (x : string) : Types.monomial -> Types.monomial list = function
     List.mapi
       (fun i arg ->
         List.map
-          (fun m -> Types.Product [App (Naming.d name i, args); m])
+          (fun m -> Monomial.Product [App (Naming.d name i, args); m])
           (monomial x arg) )
       args
     |> List.flatten
@@ -21,7 +21,7 @@ and monomial_product x acc = function
   | m :: ms ->
     (* if we derive this [m] (as [m'])... *)
     List.map
-      (fun m' -> Types.product (List.rev_append acc (m' :: ms)))
+      (fun m' -> Monomial.product (List.rev_append acc (m' :: ms)))
       (monomial x m)
     @ (* if we derive something later... *)
     monomial_product x (m :: acc) ms
@@ -33,7 +33,7 @@ let named_monomial x (constructor_name, m) =
 
 (** [polynomial x poly] computes the derivative of the polynomial [poly]
     with respect to the variable [x] *)
-let rec polynomial (x : string) : Types.polynomial -> Types.polynomial =
+let rec polynomial (x : string) : Polynomial.polynomial -> Polynomial.polynomial =
   function
   | [] -> []
   | m :: ms -> named_monomial x m @ polynomial x ms
@@ -85,11 +85,11 @@ end = struct
 end
 
 let rec monomial_pseudo ~var (path : Path.t) :
-    Types.monomial -> (Path.t * Types.monomial) list = function
+    Monomial.monomial -> (Path.t * Monomial.monomial) list = function
   | Var _ -> []
   | Product ms -> monomial_product_pseudo ~var 0 path [] ms
   | App (name, args) as m ->
-    if Types.occurs_monomial var m then
+    if Monomial.occurs_monomial var m then
       monomial_app_pseudo ~var path name args
     else
       []
@@ -101,7 +101,7 @@ and monomial_product_pseudo ~var i path acc = function
     (* if we derive this [m] (as [m'])... *)
     List.map
       (fun (path', m') ->
-        (path', Types.product (List.rev_append acc (m' :: ms))))
+        (path', Monomial.product (List.rev_append acc (m' :: ms))))
       (monomial_pseudo ~var (Path.enter_product i path) m)
     @ (* if we derive something later... *)
     monomial_product_pseudo ~var (i + 1) path (m :: acc) ms
@@ -111,11 +111,11 @@ and monomial_app_pseudo ~var path name args =
     (fun i arg ->
       List.map
         (fun (path', m') ->
-          (path', Types.Product [App (Naming.d name i, args); m']))
+          (path', Monomial.Product [App (Naming.d name i, args); m']))
         (monomial_pseudo ~var (Path.enter_app i path) arg) )
     args
   |> List.flatten
-  |> List.cons (path, Types.App (Naming.zdz name, args))
+  |> List.cons (path, Monomial.App (Naming.zdz name, args))
 
 (** WARNING: here we treat [poly] as if it was divided by [z]. Put differently,
     we treat the contructors as constants rather than [z]s. *)
