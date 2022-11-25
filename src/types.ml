@@ -1,3 +1,5 @@
+(** {2 Monomials} *)
+
 type monomial =
   | Var of string  (* FIXME: replace string with string | Fix ? *)
   | Product of monomial list (* always at least two elements *)
@@ -8,6 +10,21 @@ type monomial =
 
 let var_ x = Var x
 let one = Product []
+
+(** Substitution in monomials *)
+let rec substitute_monomial ~var ~by = function
+  | Var var' when var = var' -> by
+  | (Var _ | Hole) as m -> m
+  | Product ms -> Product (List.map (substitute_monomial ~var ~by) ms)
+  | App (name, ms) -> App (name, List.map (substitute_monomial ~var ~by) ms)
+
+let rec occurs_monomial var = function
+  | Var var' -> var = var'
+  | Hole -> false
+  | Product ms | App (_, ms) -> List.exists (occurs_monomial var) ms
+
+(** {3 Arithmetic operations on monomials} *)
+
 let product = function
   | [] -> one
   | [x] -> x
@@ -21,14 +38,29 @@ let monomial_flat_multiply m1 m2 =
   | _, Product m2s -> Product (m1 :: m2s)
   | _, _ -> Product [m1; m2]
 
+(** {2 Polynomials} *)
+
 (** List of [(constructor name, monomial)] *)
 type polynomial = (string * monomial) list
 [@@deriving show {with_path = false}]
+
+(** Substitution in polynomials *)
+let substitute_polynomial ~var ~by =
+  List.map
+    (fun (cname, m) ->
+       (cname, substitute_monomial ~var ~by m))
+
+let occurs_polynomial var =
+  List.exists (fun (_, mono) -> occurs_monomial var mono)
+
+(** {3 Arithmetic operations on polynomials} *)
 
 let polynomial_add = (@)
 
 let polynomial_flat_right_multiply_by_monomial mono' =
   List.map (fun (cname, mono) -> (cname, monomial_flat_multiply mono mono'))
+
+(** {2 Types as fixpoints of polynomials} *)
 
 type fixpoint = Fixpoint of polynomial * string
 [@@deriving show {with_path = false}]
@@ -59,20 +91,7 @@ type decl = {
   ]}
 *)
 
-(** {2 Substitution} *)
-
-let rec substitute_monomial ~var ~by = function
-  | Var var' when var = var' -> by
-  | (Var _ | Hole) as m -> m
-  | Product ms -> Product (List.map (substitute_monomial ~var ~by) ms)
-  | App (name, ms) -> App (name, List.map (substitute_monomial ~var ~by) ms)
-
-let substitute_polynomial ~var ~by =
-  List.map
-    (fun (cname, m) ->
-       (cname, substitute_monomial ~var ~by m))
-
-(** {2 From Syntax} *)
+(** {3 From Syntax} *)
 
 module Parse = struct
   (** [naive_subs ~loc name vars fix_var name' args'] *)
