@@ -39,7 +39,7 @@ module Parse = struct
   (** - name': name of the type encountered within the definition (eg. s) *)
   (** - args': type arguments of the the type encountered with the definition (eg. ['b], [int]) *)
   let rec naive_subs ~loc name vars fix_var
-    : string -> Syntax.core_type list -> Monomial.monomial
+    : string -> Syntax.core_type list -> Monomial.t
     =
     fun name' args' ->
       if name = name' then
@@ -53,7 +53,7 @@ module Parse = struct
         let args' = List.map (monomial_with_subs subs) args' in
         App (name', args')
 
-  and monomial_with_subs subs : Syntax.core_type -> Monomial.monomial =
+  and monomial_with_subs subs : Syntax.core_type -> Monomial.t =
     function
     | Var name -> Var name
     | Constr (name, args) -> subs name args
@@ -82,9 +82,9 @@ end
 (** {2 To Syntax} *)
 
 module Print = struct
-  let rec monomial: Monomial.monomial -> _ = function
+  let rec monomial: Monomial.t -> _ = function
     | Var x -> Syntax.Var x
-    | Product ms -> Product (List.map monomial ms)
+    | Prod ms -> Product (List.map monomial ms)
     | App (name, args) -> Constr (name, List.map monomial args)
     | Hole -> Constr ("hole", []) (* FIXME: fully-qualified name *)
 
@@ -98,7 +98,7 @@ module Print = struct
 
   let decl {name; vars; def} =
     let Fixpoint (poly, fix_var) = def in
-    let type_app = Monomial.App (name, List.map Monomial.var_ vars) in
+    let type_app = Monomial.App (name, List.map Monomial.var vars) in
     let poly = Polynomial.substitute_polynomial poly
         ~var:fix_var ~by:type_app
     in

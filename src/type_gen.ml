@@ -1,6 +1,6 @@
 (** The current type applied to its type variables. *)
-let the_type (td : Types.decl) : Monomial.monomial =
-  Monomial.App (td.name, List.map Monomial.var_ td.vars)
+let the_type (td : Types.decl) : Monomial.t =
+  Monomial.App (td.name, List.map Monomial.var td.vars)
 
 (** Generate the partial derivative of the polynomial of a type (eg. tree_d0,
     tree_d1, etc). *)

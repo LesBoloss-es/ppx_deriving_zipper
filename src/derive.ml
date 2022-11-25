@@ -2,15 +2,15 @@
     the variable [x].
     Note that deriving a monomial may yield a sum of monomials
     (eg. [d(u * v)/dx = du/dx * v + u * dv/dx]. *)
-let rec monomial (x : string) : Monomial.monomial -> Monomial.monomial list = function
+let rec monomial (x : string) : Monomial.t -> Monomial.t list = function
   | Var y when y = x -> [Hole]
   | Var _ -> []
-  | Product ms -> monomial_product x [] ms
+  | Prod ms -> monomial_product x [] ms
   | App (name, args) ->
     List.mapi
       (fun i arg ->
         List.map
-          (fun m -> Monomial.Product [App (Naming.d name i, args); m])
+          (fun m -> Monomial.Prod [App (Naming.d name i, args); m])
           (monomial x arg) )
       args
     |> List.flatten
@@ -85,11 +85,11 @@ end = struct
 end
 
 let rec monomial_pseudo ~var (path : Path.t) :
-    Monomial.monomial -> (Path.t * Monomial.monomial) list = function
+    Monomial.t -> (Path.t * Monomial.t) list = function
   | Var _ -> []
-  | Product ms -> monomial_product_pseudo ~var 0 path [] ms
+  | Prod ms -> monomial_product_pseudo ~var 0 path [] ms
   | App (name, args) as m ->
-    if Monomial.occurs_monomial var m then
+    if Monomial.occurs ~var m then
       monomial_app_pseudo ~var path name args
     else
       []
@@ -111,7 +111,7 @@ and monomial_app_pseudo ~var path name args =
     (fun i arg ->
       List.map
         (fun (path', m') ->
-          (path', Monomial.Product [App (Naming.d name i, args); m']))
+          (path', Monomial.Prod [App (Naming.d name i, args); m']))
         (monomial_pseudo ~var (Path.enter_app i path) arg) )
     args
   |> List.flatten

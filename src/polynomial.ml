@@ -1,17 +1,17 @@
 (** {2 Polynomials} *)
 
 (** List of [(constructor name, monomial)] *)
-type polynomial = (string * Monomial.monomial) list
+type polynomial = (string * Monomial.t) list
 [@@deriving show {with_path = false}]
 
 (** Substitution in polynomials *)
 let substitute_polynomial ~var ~by =
   List.map
     (fun (cname, m) ->
-       (cname, Monomial.substitute_monomial ~var ~by m))
+       (cname, Monomial.substitute ~var ~by m))
 
 let occurs_polynomial var =
-  List.exists (fun (_, mono) -> Monomial.occurs_monomial var mono)
+  List.exists (fun (_, mono) -> Monomial.occurs ~var mono)
 
 (** {3 Arithmetic operations on polynomials} *)
 
