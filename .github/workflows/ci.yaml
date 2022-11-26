@@ -1,0 +1,31 @@
+---
+
+name: ci
+
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - '*'
+  pull_request:
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Clone Repository
+        uses: actions/checkout@v3.1.0
+
+      - name: Install Nix
+        uses: cachix/install-nix-action@v18
+
+      - name: Install Nix Dependencies
+        run: nix develop --command true
+
+      - name: Build Software
+        run: nix develop --command make
+
+      - name: Test Software
+        run: nix develop --command make test
