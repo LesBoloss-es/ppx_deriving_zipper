@@ -30,10 +30,9 @@ jobs:
 
       - name: Check Sync of Files
         run: |
-          changes=$(git status --porcelain)
-          if [ -n "$changes" ]; then
-            printf 'Files are not in sync: building changed some:\n%s\n' \
-              "$changes"
+          if [ -n "$(git status --porcelain)" ]; then
+            printf 'Files are not in sync: building changed some:\n'
+            git diff
             exit 1
           fi
 
