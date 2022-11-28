@@ -12,6 +12,7 @@
     | Cons0 of hole * 'a lst 
   type nonrec 'a lst_d0 = ('a lst_poly_zda * 'a lst_ancestors)
   let zip_lst (x : 'a lst) = ((x, Nil) : 'a lst_zipper)
+  BONJOUR LE RÉSULTAT C'EST PAS ÇA.
   type t =
     | Leaf 
     | Node of t * t lst [@@deriving zipper]
