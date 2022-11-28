@@ -24,5 +24,6 @@
   (dune :build)
   (ocaml :build)
    ppx_deriving
+   ppx_madcast
    ppxlib
   (ppx_inline_test (or :build :with-test))))
