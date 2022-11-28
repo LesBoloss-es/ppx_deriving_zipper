@@ -11,8 +11,6 @@ let handle_type_decl type_decl : Ppxlib.structure =
   @ (* code *)
   [Code_gen.zip decl]
 
-BONJOUR ÇA NE COMPILE PAS EN FAIT.
-
 let type_decl_str ~options:_ ~path:_ = function
   (* FIXME: handle several type declarations (mutually rec types?) *)
   | [type_decl] -> handle_type_decl type_decl
